@@ -58,8 +58,8 @@ function generarResumen() {
 function enviarWhatsApp() {
   const resumen = generarResumen();
   
-  // Cambia tu número aquí
-  const numero = "5210000000000";
+ 
+  const numero = "528713914441";
 
   const mensaje = encodeURIComponent(resumen);
   const url = `https://wa.me/${numero}?text=${mensaje}`;
