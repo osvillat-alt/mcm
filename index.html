@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pedidos de Pasteles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Enlace al CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <header>
+    <h1>Pedidos de Pasteles</h1>
+    <p>Personaliza tu pastel y envía tu pedido por WhatsApp 🍰✨</p>
+  </header>
+
+  <main>
+    
+    <!-- SECCIÓN: CONFIGURACIÓN DEL PASTEL -->
+    <section class="card">
+      <h2>Configuración del pastel</hh2>
+
+      <div class="field-group">
+        <label for="tamano">Tamaño</label>
+        <select id="tamano">
+          <option value="">Selecciona una opción</option>
+          <option value="18 cm">18 cm</option>
+          <option value="20 cm">20 cm</option>
+          <option value="22 cm">22 cm</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="saborPan">Sabor del pan</label>
+        <select id="saborPan">
+          <option value="">Selecciona una opción</option>
+          <option value="Vainilla">Vainilla</option>
+          <option value="Chocolate">Chocolate</option>
+          <option value="Vainilla/almendra">Vainilla/almendra</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="consistencia">Consistencia</label>
+        <select id="consistencia">
+          <option value="">Selecciona una opción</option>
+          <option value="Seco">Seco</option>
+          <option value="Tres leches">Tres leches</option>
+          <option value="Húmedo">Húmedo</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label>Relleno</label>
+        <div class="inline-options">
+          <label class="chip"><input type="checkbox" value="Chantilly" class="relleno-opcion"> Chantilly</label>
+          <label class="chip"><input type="checkbox" value="Fruta" class="relleno-opcion"> Fruta</label>
+          <label class="chip"><input type="checkbox" value="Chocolate" class="relleno-opcion"> Chocolate</label>
+          <label class="chip"><input type="checkbox" value="Nuez/almendra" class="relleno-opcion"> Nuez/almendra</label>
+          <label class="chip"><input type="checkbox" value="Chispas de chocolate" class="relleno-opcion"> Chispas de chocolate</label>
+          <label class="chip"><input type="checkbox" value="Sugiere" class="relleno-opcion"> Sugiere</label>
+        </div>
+      </div>
+
+      <div class="helper-row">
+        <div class="field-group">
+          <label for="detalleFruta">Detalle de fruta</label>
+          <input type="text" id="detalleFruta" placeholder="Ej. fresas, mango, cóctel, etc.">
+        </div>
+        <div class="field-group">
+          <label for="detalleSugiere">¿Qué relleno sugieres?</label>
+          <input type="text" id="detalleSugiere" placeholder="Tu sugerencia">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="betun">Betún</label>
+        <select id="betun">
+          <option value="">Selecciona una opción</option>
+          <option value="Chantilly">Chantilly</option>
+          <option value="Queso crema">Queso crema</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: DISEÑO -->
+    <section class="card design">
+      <h2>Diseño del pastel</h2>
+
+      <div class="field-group">
+        <label>Elementos de diseño</label>
+        <div class="inline-options">
+          <label class="chip"><input type="checkbox" id="disenoLogo"> Logo/imagen en papel comestible</label>
+          <label class="chip"><input type="checkbox" id="disenoFraseFondant"> Frase en fondant</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="detallesLogo">Detalles del logo/imágen</label>
+        <textarea id="detallesLogo" placeholder="Describe colores, referencia, tema, etc."></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="fraseFondant">Frase en fondant</label>
+        <input type="text" id="fraseFondant" placeholder='Ej. "Feliz cumpleaños, María"'>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: CLIENTE -->
+    <section class="card customer">
+      <h2>Datos del cliente</h2>
+
+      <div class="helper-row">
+        <div class="field-group">
+          <label for="nombreCliente">Nombre</label>
+          <input type="text" id="nombreCliente" placeholder="Tu nombre">
+        </div>
+
+        <div class="field-group">
+          <label for="telefonoCliente">Teléfono</label>
+          <input type="tel" id="telefonoCliente" placeholder="Ej. 871...">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="fechaEntrega">Fecha y hora deseada</label>
+        <input type="datetime-local" id="fechaEntrega">
+      </div>
+
+      <div class="field-group">
+        <label for="comentariosAdicionales">Comentarios adicionales</label>
+        <textarea id="comentariosAdicionales" placeholder="Alergias, número de personas, referencias del diseño..."></textarea>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: RESUMEN -->
+    <section class="card summary">
+      <h2>Resumen del pedido</h2>
+
+      <div class="buttons">
+        <button class="btn-secondary" onclick="generarResumen()">🧾 Generar resumen</button>
+        <button class="btn-primary" onclick="enviarWhatsApp()">📲 Enviar por WhatsApp</button>
+      </div>
+
+      <div id="resumenPedido">
+        Aquí aparecerá el resumen de tu pedido.
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Página de ejemplo para sistema de pedidos de repostería.
+  </footer>
+
+  <!-- Enlace al JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
