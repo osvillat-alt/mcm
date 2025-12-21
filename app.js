@@ -59,7 +59,7 @@ function setupWhatsApp(){
 
   document.getElementById("send").addEventListener("click", () => {
     const msg =
-`Hola! Quiero personalizar un pastel 🍰
+`Hola! Quiero personalizar un pastel
 
 • Tamaño: ${val("tamano")}
 • Sabor: ${val("sabor")}
@@ -81,6 +81,22 @@ function val(id){
   const el = document.getElementById(id);
   return (el?.value || "").trim() || "—";
 }
+// Resalta el link activo del menú según la sección visible
+const navLinks = Array.from(document.querySelectorAll('.nav a[href^="#"]'));
+const sections = navLinks
+  .map(a => document.querySelector(a.getAttribute("href")))
+  .filter(Boolean);
+
+const io = new IntersectionObserver((entries) => {
+  const visible = entries.filter(e => e.isIntersecting).sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
+  if (!visible) return;
+
+  navLinks.forEach(a => a.classList.remove("active"));
+  const active = navLinks.find(a => a.getAttribute("href") === `#${visible.target.id}`);
+  if (active) active.classList.add("active");
+}, { rootMargin: "-30% 0px -60% 0px", threshold: [0.1, 0.2, 0.3, 0.4] });
+
+sections.forEach(s => io.observe(s));
 
 renderProducts();
 setupWhatsApp();
