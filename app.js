@@ -97,6 +97,31 @@ const io = new IntersectionObserver((entries) => {
 }, { rootMargin: "-30% 0px -60% 0px", threshold: [0.1, 0.2, 0.3, 0.4] });
 
 sections.forEach(s => io.observe(s));
+import { db } from "./firebase.js";
+import {
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const grid = document.getElementById("productsGrid");
+
+async function loadProducts(){
+  const snap = await getDocs(collection(db,"products"));
+  grid.innerHTML = "";
+
+  snap.forEach(doc=>{
+    const p = doc.data();
+    grid.innerHTML += `
+      <div class="card">
+        <img src="./${p.imagePath}" style="width:100%;border-radius:12px">
+        <h3>${p.name}</h3>
+        <p>$${p.price}</p>
+      </div>
+    `;
+  });
+}
+
+loadProducts();
 
 renderProducts();
 setupWhatsApp();
