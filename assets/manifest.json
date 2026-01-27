@@ -23,5 +23,8 @@
     "assets/PQoreo.jpeg",
     "assets/PQoreoch.png"
   ],
-  "galletas": []
+  "galletas": [
+    "assets/Galletasch.png",
+    "assets/Galletasvainilla.png"
+  ],
 }
