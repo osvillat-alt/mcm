@@ -1,6 +1,27 @@
 {
-  "pasteles": [],
-  "roles": [],
-  "pays": [],
+  "pasteles": [
+    "assets/Pastelalmendras.png",
+    "assets/Pastelconnuez.png",
+    "assets/PastelcumpleañosAzul.png",
+    "assets/PastelcumpleañosBlanco.png",
+    "assets/Pastelfresa.png",
+    "assets/Pastelpersonalizado.png",
+    "assets/Pastelredvelvet.png",
+    "assets/P.png"
+  ],
+  "roles": [
+    "assets/roles.png",
+    "assets/rolespaq.png"
+  ],
+  "pays": [
+    "assets/Paydequeso.png",
+     "assets/PQ.png",
+    "assets/PQchocolate.png",
+    "assets/PQchocolateynuez.png",
+    "assets/PQfresas.png",
+    "assets/PQnuezymango.png",
+    "assets/PQoreo.jpeg",
+    "assets/PQoreoch.png"
+  ],
   "galletas": []
 }
