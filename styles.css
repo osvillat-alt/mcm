@@ -244,7 +244,7 @@ label{ font-weight:700; font-size:13px; }
 
 
 .product .media{
-  aspect-ratio:3 / 2;         
+  aspect-ratio:1 / 1;         
   overflow:hidden;
   background:linear-gradient(
     135deg,
