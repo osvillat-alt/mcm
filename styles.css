@@ -206,10 +206,10 @@ label{ font-weight: 700; font-size: 13px; display:block; }
   border-bottom: 1px solid var(--border);
 }
 .product img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
+width: 100%;
+  border-radius: 16px;
+  margin: 12px 0;
+  object-fit: cover;
 }
 .product .body{
   padding: 14px;
