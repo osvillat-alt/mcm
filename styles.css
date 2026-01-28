@@ -205,11 +205,13 @@ label{ font-weight: 700; font-size: 13px; display:block; }
   background: linear-gradient(135deg, rgba(246,183,200,.30), rgba(75,47,36,.08));
   border-bottom: 1px solid var(--border);
 }
-.product img{
-width: 100%;
-  border-radius: 16px;
-  margin: 12px 0;
-  object-fit: cover;
+.promo-img {
+  width: 100%;
+  max-width: 520px;   
+  margin: 8px auto 12px;
+  display: block;
+  border-radius: 14px;
+}
 }
 .product .body{
   padding: 14px;
