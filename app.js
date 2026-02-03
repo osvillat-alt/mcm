@@ -59,6 +59,7 @@ let cart = JSON.parse(localStorage.getItem("mcm_cart") || "[]");
 function saveCart() {
   localStorage.setItem("mcm_cart", JSON.stringify(cart));
   updateCartBadge();
+  updateCartHeight();
 }
 
 function updateCartBadge() {
@@ -67,10 +68,25 @@ function updateCartBadge() {
   cartCountEl.textContent = String(count);
 }
 
+function updateCartHeight(){
+  // crecimiento según cantidad total (sumando qty)
+  const count = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
+
+  let h = 52;
+  if (count === 0) h = 44;
+  else if (count <= 2) h = 55;
+  else if (count <= 5) h = 68;
+  else if (count <= 8) h = 78;
+  else h = 88;
+
+  document.documentElement.style.setProperty("--cart-h", `${h}vh`);
+}
+
 function openCart() {
   document.body.classList.add("cart-open");
   if (cartDrawer) cartDrawer.setAttribute("aria-hidden", "false");
   renderCart();
+  updateCartHeight();
 }
 
 function closeCart() {
@@ -117,19 +133,6 @@ function changeQty(id, delta) {
   saveCart();
   renderCart();
 }
-function updateCartHeight(){
-  /
-  const count = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
-  let h = 52;             
-  if (count === 0) h = 44;
-  else if (count <= 2) h = 55;
-  else if (count <= 5) h = 68;
-  else if (count <= 8) h = 78;
-  else h = 88;
-
-  document.documentElement.style.setProperty("--cart-h", `${h}vh`);
-}
-
 
 function calcTotal() {
   let total = 0;
@@ -192,6 +195,7 @@ function renderCart() {
 
   cartTotalEl.textContent = money(calcTotal());
   updateCartBadge();
+  updateCartHeight();
 }
 
 function buildCartWhatsApp() {
@@ -213,6 +217,7 @@ function buildCartWhatsApp() {
 
 function setupCartUI() {
   updateCartBadge();
+  updateCartHeight();
 
   if (openCartBtn) openCartBtn.addEventListener("click", openCart);
   if (closeCartBtn) closeCartBtn.addEventListener("click", closeCart);
@@ -234,7 +239,7 @@ function setupCartUI() {
     });
   }
 
-  // Delegación para botones dentro del carrito
+  // Botones dentro del carrito (delegación)
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-act]");
     if (!btn) return;
@@ -400,7 +405,7 @@ function setupCakeWhatsApp() {
 }
 
 /** =========================
- *  Product card button actions
+ *  Acciones en productos
  *  ========================= */
 function setupProductActions() {
   if (!productsGrid) return;
