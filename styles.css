@@ -233,7 +233,7 @@ label{ font-weight:700; font-size:13px; display:block; }
   display:block;
 }
 .product .body{
-  padding:12px;
+  padding:8px;
   display:flex;
   flex-direction:column;
   gap:6px;
