@@ -6,6 +6,7 @@
   <title>MCM Repostería</title>
   <link rel="stylesheet" href="./styles.css"/>
 </head>
+
 <body>
   <header class="topbar" id="home">
     <div class="container topbar-inner">
@@ -17,7 +18,6 @@
         <a href="#home">Inicio</a>
         <a href="#productos">Productos</a>
         <a href="#personaliza">Personaliza</a>
-        <a href="#galeria">Galería</a>
         <a href="#acerca">Acerca</a>
         <a href="#contacto">Contacto</a>
       </nav>
@@ -38,26 +38,28 @@
             <a class="btn ghost" href="#productos">Ver catálogo</a>
           </div>
         </div>
+
         <div class="card hero-card">
-  <h3>Promos / Avisos</h3>
+          <h3>Promos / Avisos</h3>
 
-  <img 
-    src="assets/bienvenida.png"
-    alt="Bienvenidos a MCM Repostería"
-    class="promo-img"
-  />
+          <img
+            src="./assets/bienvenida.png"
+            alt="Bienvenidos a MCM Repostería"
+            class="promo-img"
+          />
 
-  <p id="promoText">
-    Explora nuestro catálogo y personaliza tu pastel ideal
-  </p>
-</div>
+          <p id="promoText">
+            Explora nuestro catálogo y personaliza tu pastel ideal
+          </p>
 
-<button class="btn primary" id="sendCartWhatsApp">Enviar carrito por WhatsApp</button>
-<button class="btn ghost" id="clearCart">Vaciar carrito</button>
-        <button class="btn ghost cart-btn" id="openCart">
-  Carrito <span class="cart-badge" id="cartCount">0</span>
-</button>
-
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button class="btn ghost cart-btn" id="openCart" type="button">
+              Carrito <span class="cart-badge" id="cartCount">0</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- PRODUCTOS -->
     <section class="section" id="productos">
@@ -71,7 +73,6 @@
         </div>
 
         <div id="productsGrid" class="grid" aria-live="polite"></div>
-     
       </div>
     </section>
 
@@ -100,7 +101,7 @@
                 <option>Chocolate</option>
                 <option>Red velvet</option>
                 <option>Almendra</option>
-                 <option>Zanahoria</option>
+                <option>Zanahoria</option>
               </select>
             </label>
 
@@ -128,11 +129,11 @@
                 <label><input type="checkbox" class="relleno" value="Fruta"> Fruta</label>
                 <label><input type="checkbox" class="relleno" value="Chocolate"> Chocolate</label>
                 <label><input type="checkbox" class="relleno" value="Almendra"> Almendra</label>
-                 <label><input type="checkbox" class="relleno" value="Nuez"> Nuez</label>
+                <label><input type="checkbox" class="relleno" value="Nuez"> Nuez</label>
                 <label><input type="checkbox" class="relleno" value="Fresas con crema"> Fresas con crema</label>
                 <label><input type="checkbox" class="relleno" value="Nutella"> Nutella</label>
-                 <label><input type="checkbox" class="relleno" value="Cajeta"> Cajeta</label>
-                <label><input type="checkbox" class="relleno" value="Queso Philadephia"> Queso Philadephia</label>
+                <label><input type="checkbox" class="relleno" value="Cajeta"> Cajeta</label>
+                <label><input type="checkbox" class="relleno" value="Queso Philadelphia"> Queso Philadelphia</label>
               </div>
             </label>
 
@@ -140,35 +141,31 @@
               <input id="detalleFruta" type="text" placeholder="Ej. fresa, mango, durazno..."/>
             </label>
 
-          <label class="full">
-  Diseño: imagen/logo (papel comestible)
-  <textarea
-    id="detallesLogo"
-    placeholder="Describe el diseño, colores, referencia..."
-  ></textarea>
-</label>
+            <label class="full">
+              Diseño: imagen/logo (papel comestible)
+              <textarea id="detallesLogo" placeholder="Describe el diseño, colores, referencia..."></textarea>
+            </label>
 
-<label class="full">
-  Imagen de referencia (link)
-  <input
-    id="imagenReferencia"
-    type="url"
-    placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"
-  />
-</label>
-         <label class="full">Texto en fondant / Texto en chocolate
+            <label class="full">
+              Imagen de referencia (link)
+              <input
+                id="imagenReferencia"
+                type="url"
+                placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"
+              />
+            </label>
+
+            <label class="full">Texto en fondant / Texto en chocolate
               <input id="fraseFondant" type="text" placeholder='Ej. "Feliz cumpleaños"'/>
             </label>
-            <label>
-  Fecha de entrega
-  <input id="fechaEntrega" type="date" required />
-</label>
 
-<label>
-  Hora de entrega
-  <input id="horaEntrega" type="time" required />
-</label>
+            <label>Fecha de entrega
+              <input id="fechaEntrega" type="date" />
+            </label>
 
+            <label>Hora de entrega
+              <input id="horaEntrega" type="time" />
+            </label>
 
             <label>Nombre
               <input id="nombreCliente" type="text" placeholder="Tu nombre"/>
@@ -184,7 +181,7 @@
           </div>
 
           <div class="actions">
-            <button class="btn primary" id="sendCakeWhatsApp">Enviar por WhatsApp</button>
+            <button class="btn primary" id="sendCakeWhatsApp" type="button">Enviar por WhatsApp</button>
           </div>
         </div>
       </div>
@@ -192,29 +189,29 @@
 
     <!-- ACERCA -->
     <section class="section" id="acerca">
-  <div class="container">
-    <h2>Acerca de MCM</h2>
+      <div class="container">
+        <h2>Acerca de MCM</h2>
 
-    <div class="about-text">
-      <p>
-        MCM Repostería nace del gusto por crear momentos especiales a través de los sabores.
-        Cada pastel, pay o postre que elaboramos está hecho de manera artesanal, cuidando
-        cada detalle desde los ingredientes hasta la presentación final.
-      </p>
+        <div class="about-text">
+          <p>
+            MCM Repostería nace del gusto por crear momentos especiales a través de los sabores.
+            Cada pastel, pay o postre que elaboramos está hecho de manera artesanal, cuidando
+            cada detalle desde los ingredientes hasta la presentación final.
+          </p>
 
-      <p>
-        Nos especializamos en pasteles personalizados, porque creemos que cada celebración
-        es única. Ya sea un cumpleaños, aniversario o un detalle especial, nuestro objetivo
-        es que tu pedido no solo se vea increíble, sino que también sepa delicioso.
-      </p>
+          <p>
+            Nos especializamos en pasteles personalizados, porque creemos que cada celebración
+            es única. Ya sea un cumpleaños, aniversario o un detalle especial, nuestro objetivo
+            es que tu pedido no solo se vea increíble, sino que también sepa delicioso.
+          </p>
 
-      <p>
-        Trabajamos bajo pedido para garantizar frescura, calidad y atención personalizada,
-        acompañándote en cada paso para que el resultado sea justo como lo imaginas.
-      </p>
-    </div>
-  </div>
-</section>
+          <p>
+            Trabajamos bajo pedido para garantizar frescura, calidad y atención personalizada,
+            acompañándote en cada paso para que el resultado sea justo como lo imaginas.
+          </p>
+        </div>
+      </div>
+    </section>
 
     <!-- CONTACTO -->
     <section class="section" id="contacto">
@@ -228,7 +225,8 @@
           </div>
           <div class="card">
             <h3>Horarios</h3>
-            <p class="muted">Lunes a viernes.</p> 10:00 a.m. - 7:00 p.m.
+            <p class="muted">Lunes a viernes.</p>
+            <p>10:00 a.m. - 7:00 p.m.</p>
           </div>
         </div>
       </div>
@@ -239,38 +237,38 @@
         <small>© <span id="year"></span> MCM Repostería</small>
       </div>
     </footer>
+
+    <!-- CARRITO (drawer) -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+      <div class="cart-card">
+        <div class="cart-head">
+          <div>
+            <h3 class="cart-title">En el horno…</h3>
+            <p class="cart-sub">Tu pedido está casi listo</p>
+          </div>
+          <button class="cart-close" id="closeCart" aria-label="Cerrar" type="button">✕</button>
+        </div>
+
+        <div class="cart-items" id="cartItems"></div>
+
+        <div class="cart-foot">
+          <div class="cart-total">
+            <span>Total:</span>
+            <strong id="cartTotal">$0</strong>
+          </div>
+
+          <div class="cart-actions">
+            <button class="btn ghost" id="clearCart" type="button">Vaciar</button>
+            <button class="btn primary" id="sendCartWhatsApp" type="button">Enviar por WhatsApp</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
   </main>
 
   <script type="module" src="./app.js"></script>
-        <div class="cart-overlay" id="cartOverlay"></div>
-
-<aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
-  <div class="cart-card">
-    <div class="cart-head">
-      <div>
-        <h3 class="cart-title">En el horno…</h3>
-        <p class="cart-sub">Tu pedido está casi listo </p>
-      </div>
-      <button class="cart-close" id="closeCart" aria-label="Cerrar">✕</button>
-    </div>
-
-    <div class="cart-items" id="cartItems">
-
-    </div>
-
-    <div class="cart-foot">
-      <div class="cart-total">
-        <span>Total:</span>
-        <strong id="cartTotal">$0</strong>
-      </div>
-
-      <div class="cart-actions">
-        <button class="btn ghost" id="clearCart">Vaciar</button>
-        <button class="btn primary" id="sendCartWhatsApp">Enviar por WhatsApp</button>
-      </div>
-    </div>
-  </div>
-</aside>
-
 </body>
 </html>
