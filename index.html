@@ -22,7 +22,12 @@
         <a href="#contacto">Contacto</a>
       </nav>
 
-      <a class="cta" href="#personaliza">Pedir pastel</a>
+      <div class="topbar-actions">
+        <button class="btn ghost cart-btn" id="openCart" type="button">
+          Carrito <span class="cart-badge" id="cartCount">0</span>
+        </button>
+        <a class="cta" href="#personaliza">Pedir pastel</a>
+      </div>
     </div>
   </header>
 
@@ -48,15 +53,7 @@
             class="promo-img"
           />
 
-          <p id="promoText">
-            Explora nuestro catálogo y personaliza tu pastel ideal
-          </p>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <button class="btn ghost cart-btn" id="openCart" type="button">
-              Carrito <span class="cart-badge" id="cartCount">0</span>
-            </button>
-          </div>
+          <p id="promoText">Explora nuestro catálogo y personaliza tu pastel ideal</p>
         </div>
       </div>
     </section>
@@ -148,11 +145,7 @@
 
             <label class="full">
               Imagen de referencia (link)
-              <input
-                id="imagenReferencia"
-                type="url"
-                placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"
-              />
+              <input id="imagenReferencia" type="url" placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"/>
             </label>
 
             <label class="full">Texto en fondant / Texto en chocolate
@@ -225,7 +218,7 @@
           </div>
           <div class="card">
             <h3>Horarios</h3>
-            <p class="muted">Lunes a viernes.</p>
+            <p class="muted">Lunes a viernes</p>
             <p>10:00 a.m. - 7:00 p.m.</p>
           </div>
         </div>
@@ -237,37 +230,36 @@
         <small>© <span id="year"></span> MCM Repostería</small>
       </div>
     </footer>
+  </main>
 
-    <!-- CARRITO (drawer) -->
-    <div class="cart-overlay" id="cartOverlay"></div>
+  <!-- Overlay + Drawer del carrito -->
+  <div class="cart-overlay" id="cartOverlay"></div>
 
-    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
-      <div class="cart-card">
-        <div class="cart-head">
-          <div>
-            <h3 class="cart-title">En el horno…</h3>
-            <p class="cart-sub">Tu pedido está casi listo</p>
-          </div>
-          <button class="cart-close" id="closeCart" aria-label="Cerrar" type="button">✕</button>
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+    <div class="cart-card">
+      <div class="cart-head">
+        <div>
+          <h3 class="cart-title">En el horno…</h3>
+          <p class="cart-sub">Tu pedido está casi listo</p>
+        </div>
+        <button class="cart-close" id="closeCart" aria-label="Cerrar" type="button">✕</button>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-foot">
+        <div class="cart-total">
+          <span>Total:</span>
+          <strong id="cartTotal">$0</strong>
         </div>
 
-        <div class="cart-items" id="cartItems"></div>
-
-        <div class="cart-foot">
-          <div class="cart-total">
-            <span>Total:</span>
-            <strong id="cartTotal">$0</strong>
-          </div>
-
-          <div class="cart-actions">
-            <button class="btn ghost" id="clearCart" type="button">Vaciar</button>
-            <button class="btn primary" id="sendCartWhatsApp" type="button">Enviar por WhatsApp</button>
-          </div>
+        <div class="cart-actions">
+          <button class="btn ghost" id="clearCart" type="button">Vaciar</button>
+          <button class="btn primary" id="sendCartWhatsApp" type="button">Enviar por WhatsApp</button>
         </div>
       </div>
-    </aside>
-
-  </main>
+    </div>
+  </aside>
 
   <script type="module" src="./app.js"></script>
 </body>
