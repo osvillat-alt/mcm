@@ -52,6 +52,12 @@
   </p>
 </div>
 
+<button class="btn primary" id="sendCartWhatsApp">Enviar carrito por WhatsApp</button>
+<button class="btn ghost" id="clearCart">Vaciar carrito</button>
+        <button class="btn ghost cart-btn" id="openCart">
+  Carrito <span class="cart-badge" id="cartCount">0</span>
+</button>
+
 
     <!-- PRODUCTOS -->
     <section class="section" id="productos">
@@ -94,6 +100,7 @@
                 <option>Chocolate</option>
                 <option>Red velvet</option>
                 <option>Almendra</option>
+                 <option>Zanahoria</option>
               </select>
             </label>
 
@@ -149,7 +156,7 @@
     placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"
   />
 </label>
-         <label class="full">Frase en fondant
+         <label class="full">Texto en fondant / Texto en chocolate
               <input id="fraseFondant" type="text" placeholder='Ej. "Feliz cumpleaños"'/>
             </label>
             <label>
@@ -221,7 +228,7 @@
           </div>
           <div class="card">
             <h3>Horarios</h3>
-            <p class="muted">Agrega aquí tus horarios y zona de entrega.</p>
+            <p class="muted">Lunes a viernes.</p> 10:00 a.m. - 7:00 p.m.
           </div>
         </div>
       </div>
@@ -235,5 +242,35 @@
   </main>
 
   <script type="module" src="./app.js"></script>
+        <div class="cart-overlay" id="cartOverlay"></div>
+
+<aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+  <div class="cart-card">
+    <div class="cart-head">
+      <div>
+        <h3 class="cart-title">En el horno…</h3>
+        <p class="cart-sub">Tu pedido está casi listo </p>
+      </div>
+      <button class="cart-close" id="closeCart" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="cart-items" id="cartItems">
+
+    </div>
+
+    <div class="cart-foot">
+      <div class="cart-total">
+        <span>Total:</span>
+        <strong id="cartTotal">$0</strong>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn ghost" id="clearCart">Vaciar</button>
+        <button class="btn primary" id="sendCartWhatsApp">Enviar por WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
 </body>
 </html>
