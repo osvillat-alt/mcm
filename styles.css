@@ -221,7 +221,7 @@ label{ font-weight:700; font-size:13px; display:block; }
   overflow:hidden;
 }
 .product .media{
-  aspect-ratio: 1 / 1;     /* 1:1 */
+  aspect-ratio: 1 / 1; 
   overflow:hidden;
   background:linear-gradient(135deg, rgba(246,183,200,.30), rgba(75,47,36,.10));
 }
@@ -233,7 +233,7 @@ label{ font-weight:700; font-size:13px; display:block; }
   display:block;
 }
 .product .body{
-  padding:14px;
+  padding:12px;
   display:flex;
   flex-direction:column;
   gap:6px;
@@ -255,17 +255,11 @@ label{ font-weight:700; font-size:13px; display:block; }
   margin: 8px 0 0;
 }
 
-
-.product-actions{
-  display:flex;
-  gap:10px;
-  margin-top:12px;
-}
 .product-actions{
   display:flex;
   gap:10px;
   margin-top:auto;
-  padding-top:12px;
+  padding-top:10px;
 }
 
 /* Form */
