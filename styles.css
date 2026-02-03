@@ -214,53 +214,23 @@ label{ font-weight:700; font-size:13px; display:block; }
   gap:14px;
 }
 
-/* Product card */
+/* =========================
+   Products Grid (CATÁLOGO)
+========================= */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:14px;
+  align-items: stretch;        
+}
+
+/* Tarjeta producto */
 .product{
   display:flex;
   flex-direction:column;
   overflow:hidden;
-}
-.product .media{
-  aspect-ratio: 1 / 1; 
-  overflow:hidden;
-  background:linear-gradient(135deg, rgba(246,183,200,.30), rgba(75,47,36,.10));
-}
-.product .media img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center;
-  display:block;
-}
-.product .body{
-  padding:8px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  height:100%;
-}
+  height:100%;                  
 
-.product h3{
-  margin:0;
-  font-size:16px;
-}
-.product .price{
-  font-weight:900;
-  color:var(--accent);
-}
-.product p{
-  font-size:14px;
-  color:var(--muted);
-  line-height:1.45;
-  margin: 8px 0 0;
-}
-
-.product-actions{
-  display:flex;
-  gap:10px;
-  margin-top:auto;
-  padding-top:10px;
-}
 
 /* Form */
 .form-wrap{
