@@ -51,6 +51,7 @@ section[id]{ scroll-margin-top:92px; }
   border:1px solid transparent;
   font-weight:700;
   cursor:pointer;
+  user-select:none;
   transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
 }
 .btn:active{ transform: translateY(1px); }
@@ -127,12 +128,6 @@ section[id]{ scroll-margin-top:92px; }
   font-weight:800;
 }
 
-.topbar-actions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
 /* Hero */
 .hero{ padding:42px 0 12px; }
 .hero-inner{
@@ -207,32 +202,90 @@ textarea{
 textarea{ min-height:90px; resize:vertical; }
 label{ font-weight:700; font-size:13px; display:block; }
 
-/* Products grid */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  gap:14px;
-}
-
 /* =========================
-   Products Grid (CATÁLOGO)
+   PRODUCTS (CATÁLOGO)
 ========================= */
 .grid{
   display:grid;
   grid-template-columns:repeat(3, minmax(0,1fr));
   gap:14px;
-  align-items: stretch;        
+  align-items:stretch; /* hace que las cards llenen alto disponible */
 }
 
-/* Tarjeta producto */
+/* Card producto (misma altura y botones alineados) */
 .product{
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  height:100%;                  
+  height:100%;
+}
 
+/* Imagen 1:1 */
+.product .media{
+  aspect-ratio: 1 / 1;
+  overflow:hidden;
+  background:linear-gradient(135deg, rgba(246,183,200,.30), rgba(75,47,36,.10));
+}
 
-/* Form */
+/* Menos recorte: mueve ligeramente el “foco” hacia arriba */
+.product .media img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position: 50% 40%;
+}
+
+/* Cuerpo: flex + espacio estable */
+.product .body{
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  flex:1;               /* clave: el body crece para empujar acciones abajo */
+  min-height: 170px;    /* ajusta si quieres menos/mas alto de card */
+}
+
+.product h3{
+  margin:0;
+  font-size:16px;
+}
+
+.product .price{
+  font-weight:900;
+  color:var(--accent);
+}
+
+/* Limitar texto para que no “mueva” botones entre cards */
+.product p{
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.45;
+  margin:6px 0 0;
+  display:-webkit-box;
+  -webkit-line-clamp: 3;        /* cambia a 2 o 4 si quieres */
+  -webkit-box-orient: vertical;
+  overflow:hidden;
+  min-height: calc(1.45em * 3); /* reserva el mismo alto aunque haya poco texto */
+}
+
+/* Botones siempre abajo */
+.product-actions{
+  display:flex;
+  gap:10px;
+  margin-top:auto;
+  padding-top:10px;
+}
+
+.product-actions .btn{
+  flex:1;
+  padding:10px 12px;
+  font-size:13px;
+}
+
+/* =========================
+   Form
+========================= */
 .form-wrap{
   max-width: 680px;
   margin: 0 auto;
@@ -470,10 +523,12 @@ body.cart-open .cart-drawer{
   font-size: 12px;
 }
 
-/* Responsive */
+/* =========================
+   Responsive
+========================= */
 @media (max-width:920px){
   .hero-inner{ grid-template-columns:1fr; }
-  .grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
   .contact{ grid-template-columns:1fr; }
 }
 
@@ -481,25 +536,31 @@ body.cart-open .cart-drawer{
   .form-wrap{ padding:18px 16px; }
   .form-grid{ grid-template-columns:1fr; gap:14px; }
 
-  
+  /* catálogo móvil: 2 columnas */
   .grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap:12px;
   }
 
-  .product .body{ padding:12px; }
-  .product h3{ font-size:14px; }
-  .product p{ font-size:12px; }
-
-  .product-actions{
-    gap:8px;
+  .product .body{
+    padding:12px;
+    min-height: 155px; /* un poco más compacto */
   }
+
+  .product h3{ font-size:14px; }
+  .product p{
+    font-size:12px;
+    -webkit-line-clamp: 2;
+    min-height: calc(1.45em * 2);
+  }
+
+  .product-actions{ gap:8px; }
   .product-actions .btn{
     padding:10px 10px;
     font-size:12px;
   }
 
-  .nav{ display:none; } 
+  .nav{ display:none; }
 }
 
 @media (max-width:360px){
