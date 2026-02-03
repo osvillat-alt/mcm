@@ -237,7 +237,9 @@ label{ font-weight:700; font-size:13px; display:block; }
   display:flex;
   flex-direction:column;
   gap:6px;
+  height:100%;
 }
+
 .product h3{
   margin:0;
   font-size:16px;
@@ -253,15 +255,17 @@ label{ font-weight:700; font-size:13px; display:block; }
   margin: 8px 0 0;
 }
 
+
 .product-actions{
   display:flex;
   gap:10px;
   margin-top:12px;
 }
-.product-actions .btn{
-  padding:10px 14px;
-  font-size:13px;
-  flex:1;
+.product-actions{
+  display:flex;
+  gap:10px;
+  margin-top:auto;
+  padding-top:12px;
 }
 
 /* Form */
@@ -513,7 +517,7 @@ body.cart-open .cart-drawer{
   .form-wrap{ padding:18px 16px; }
   .form-grid{ grid-template-columns:1fr; gap:14px; }
 
-  /* móvil: 2 columnas en productos */
+  
   .grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap:12px;
@@ -531,10 +535,9 @@ body.cart-open .cart-drawer{
     font-size:12px;
   }
 
-  .nav{ display:none; } /* luego podemos poner menú hamburguesa */
+  .nav{ display:none; } 
 }
 
-/* Opcional: si tu pantalla es MUY angosta (tipo 320px) */
 @media (max-width:360px){
   .grid{ grid-template-columns: 1fr; }
 }
