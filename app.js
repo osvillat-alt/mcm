@@ -117,6 +117,19 @@ function changeQty(id, delta) {
   saveCart();
   renderCart();
 }
+function updateCartHeight(){
+  /
+  const count = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
+  let h = 52;             
+  if (count === 0) h = 44;
+  else if (count <= 2) h = 55;
+  else if (count <= 5) h = 68;
+  else if (count <= 8) h = 78;
+  else h = 88;
+
+  document.documentElement.style.setProperty("--cart-h", `${h}vh`);
+}
+
 
 function calcTotal() {
   let total = 0;
@@ -140,6 +153,7 @@ function renderCart() {
     `;
     cartTotalEl.textContent = "$0";
     updateCartBadge();
+    updateCartHeight();
     return;
   }
 
