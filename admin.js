@@ -1,160 +1,282 @@
-import { db } from "./firebase.js";
+import { db, auth, storage } from "./firebase.js";
 import {
-  collection, addDoc, getDocs, serverTimestamp, query, orderBy
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  serverTimestamp,
+  deleteDoc,
+  doc,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+/** =========================
+ *  Helpers
+ *  ========================= */
 const $ = (id) => document.getElementById(id);
 
-let manifest = {};
-
-async function loadManifest(){
-  const res = await fetch("./assets/manifest.json?v=" + Date.now());
-  if (!res.ok) throw new Error("No se pudo cargar assets/manifest.json");
-  manifest = await res.json();
+function escapeHtml(str = "") {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-function fillImagesForCategory(cat){
-  const sel = $("pImagePath");
-  const preview = $("pImagePreview");
-  const list = manifest?.[cat] || [];
-
-  if (!sel) return;
-
-  sel.innerHTML = list.length
-    ? [`<option value="">Selecciona</option>`, ...list.map(p => `<option value="${p}">${p.split("/").pop()}</option>`)].join("")
-    : `<option value="">No hay imágenes en manifest para: ${cat}</option>`;
-
-  if (preview){
-    preview.style.display = "none";
-    preview.src = "";
-  }
+function money(n) {
+  const v = Number(n);
+  if (Number.isNaN(v)) return "";
+  return `$${v.toFixed(0)}`;
 }
 
-function wirePickers(){
-  const catSel = $("pCategory");
-  const imgSel = $("pImagePath");
-  const preview = $("pImagePreview");
+function setStatus(msg) {
+  const el = $("status");
+  if (el) el.textContent = msg || "";
+}
 
-  catSel?.addEventListener("change", () => fillImagesForCategory(catSel.value));
+/** =========================
+ *  Auth UI
+ *  ========================= */
+const provider = new GoogleAuthProvider();
 
-  imgSel?.addEventListener("change", () => {
-    const path = imgSel.value;
-    if (!preview) return;
+const loginBox = $("loginBox");
+const adminPanel = $("adminPanel");
+const loginGoogleBtn = $("loginGoogle");
+const logoutBtn = $("logoutBtn");
+const userChip = $("userChip");
 
-    if (!path){
-      preview.style.display = "none";
-      preview.src = "";
-      return;
+/** Solo tú (opcional): pon tu correo aquí */
+const ALLOWED_EMAILS = [
+  // "tucorreo@gmail.com",
+];
+
+function isAllowedUser(user) {
+  if (!user) return false;
+  if (!ALLOWED_EMAILS.length) return true; // si no pones correos, cualquiera con login entra
+  return ALLOWED_EMAILS.includes(user.email);
+}
+
+if (loginGoogleBtn) {
+  loginGoogleBtn.addEventListener("click", async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo iniciar sesión. Revisa consola.");
     }
-    preview.src = `./${path}`;
-    preview.style.display = "block";
   });
 }
 
-function toNumberOrNull(v){
-  const n = Number(v);
-  return Number.isFinite(n) && v !== "" ? n : null;
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+  });
 }
 
-async function saveProduct(){
-  const name = ($("pName")?.value || "").trim();
-  const price = toNumberOrNull($("pPrice")?.value || "");
-  const category = ($("pCategory")?.value || "").trim();
-  const imagePath = ($("pImagePath")?.value || "").trim();
-  const description = ($("pDesc")?.value || "").trim();
-  const active = ($("pActive")?.value || "true") === "true";
+onAuthStateChanged(auth, (user) => {
+  if (user && isAllowedUser(user)) {
+    if (loginBox) loginBox.style.display = "none";
+    if (adminPanel) adminPanel.style.display = "block";
+    if (logoutBtn) logoutBtn.style.display = "inline-flex";
 
-  if (!name || !category){
-    alert("Falta nombre o categoría.");
+    if (userChip) {
+      userChip.style.display = "inline-flex";
+      userChip.textContent = user.email || "Sesión iniciada";
+    }
+
+    // cargar lista al entrar
+    loadProductsList();
+  } else {
+    if (loginBox) loginBox.style.display = "block";
+    if (adminPanel) adminPanel.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "none";
+
+    if (userChip) {
+      userChip.style.display = "none";
+      userChip.textContent = "";
+    }
+  }
+});
+
+/** =========================
+ *  Form Elements
+ *  ========================= */
+const pName = $("pName");
+const pPrice = $("pPrice");
+const pCategory = $("pCategory");
+const pDesc = $("pDesc");
+const pImage = $("pImage");
+
+const previewImg = $("previewImg");
+const saveProductBtn = $("saveProduct");
+const resetFormBtn = $("resetForm");
+
+const productsList = $("productsList");
+const refreshListBtn = $("refreshList");
+
+/** Preview */
+if (pImage) {
+  pImage.addEventListener("change", () => {
+    const file = pImage.files?.[0];
+    if (!file) {
+      if (previewImg) previewImg.style.display = "none";
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    if (previewImg) {
+      previewImg.src = url;
+      previewImg.style.display = "block";
+    }
+  });
+}
+
+function resetForm() {
+  if (pName) pName.value = "";
+  if (pPrice) pPrice.value = "";
+  if (pCategory) pCategory.value = "";
+  if (pDesc) pDesc.value = "";
+  if (pImage) pImage.value = "";
+  if (previewImg) previewImg.style.display = "none";
+  setStatus("");
+}
+
+if (resetFormBtn) resetFormBtn.addEventListener("click", resetForm);
+
+/** =========================
+ *  Save Product (Firestore + Storage)
+ *  ========================= */
+async function uploadImageAndGetPath(file) {
+  // Guardamos en Storage y también guardamos una ruta relativa "assets/..."
+  const safeName = file.name.replaceAll(" ", "_");
+  const path = `products/${Date.now()}_${safeName}`;
+  const storageRef = ref(storage, path);
+
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+
+  return { storagePath: path, downloadURL: url };
+}
+
+async function saveProduct() {
+  const user = auth.currentUser;
+  if (!user || !isAllowedUser(user)) {
+    alert("No autorizado. Inicia sesión primero.");
     return;
   }
 
-  const data = {
-    name,
-    price,
-    category,
-    imagePath,
-    description,
-    active,
-    createdAt: serverTimestamp()
-  };
+  const name = pName?.value?.trim() || "";
+  const price = pPrice?.value ? Number(pPrice.value) : "";
+  const category = pCategory?.value?.trim() || "";
+  const description = pDesc?.value?.trim() || "";
 
-  await addDoc(collection(db, "products"), data);
+  if (!name) return alert("Pon un nombre.");
+  if (price === "") return alert("Pon un precio (número).");
 
-  alert("Producto guardado ✅");
-  // Clear basics
-  if ($("pName")) $("pName").value = "";
-  if ($("pPrice")) $("pPrice").value = "";
-  if ($("pDesc")) $("pDesc").value = "";
-}
+  const file = pImage?.files?.[0];
+  if (!file) return alert("Sube una imagen.");
 
-function escapeHtml(str=""){
-  return str
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
+  setStatus("Subiendo imagen...");
 
-async function renderAdminProducts(){
-  const wrap = $("adminProducts");
-  if (!wrap) return;
+  try {
+    const { storagePath, downloadURL } = await uploadImageAndGetPath(file);
 
-  wrap.innerHTML = "";
-  let docs = [];
-  try{
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-  }catch(e){
-    const snap = await getDocs(collection(db, "products"));
-    docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    setStatus("Guardando producto...");
+
+    // Guardamos en Firestore lo necesario para tu catálogo
+    await addDoc(collection(db, "products"), {
+      name,
+      price,
+      category,
+      description,
+      imagePath: downloadURL, // Usaremos URL directa para evitar rutas raras en Vercel/GH
+      storagePath,            // por si luego quieres borrar el archivo
+      createdAt: serverTimestamp(),
+    });
+
+    setStatus("✅ Producto guardado.");
+    resetForm();
+    await loadProductsList();
+  } catch (e) {
+    console.error(e);
+    setStatus("❌ Error guardando. Revisa consola.");
   }
+}
 
-  if (!docs.length){
-    wrap.innerHTML = `<div class="card" style="padding:16px; grid-column:1/-1;">
-      <strong>Sin productos aún.</strong>
-      <p class="muted" style="margin:8px 0 0;">Agrega tu primer producto arriba.</p>
-    </div>`;
+if (saveProductBtn) saveProductBtn.addEventListener("click", saveProduct);
+
+/** =========================
+ *  List + Delete
+ *  ========================= */
+async function loadProductsList() {
+  if (!productsList) return;
+
+  productsList.innerHTML = `<p class="muted">Cargando...</p>`;
+
+  const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    productsList.innerHTML = `<p class="muted">Aún no hay productos.</p>`;
     return;
   }
 
-  wrap.innerHTML = docs.map(p => {
-    const img = p.imagePath ? `./${p.imagePath}` : "";
-    const priceText = (p.price ?? "") !== "" ? `$${p.price}` : "";
+  productsList.innerHTML = snap.docs.map((d) => {
+    const p = d.data();
+    const img = p.imagePath || "";
+    const name = escapeHtml(p.name || "Producto");
+    const cat = escapeHtml(p.category || "sin categoría");
+    const desc = escapeHtml(p.description || "");
+    const price = p.price !== undefined ? money(p.price) : "";
+
     return `
-      <article class="card product">
-        <div class="media">
-          ${img ? `<img src="${img}" alt="${escapeHtml(p.name||"")}" loading="lazy" onerror="this.style.display='none'">` : ""}
+      <div class="item">
+        ${img ? `<img src="${img}" alt="${name}">` : `<div></div>`}
+
+        <div>
+          <h4>${name}</h4>
+          <div class="price">${price}</div>
+          <p>${cat}${desc ? " • " + desc : ""}</p>
         </div>
-        <div class="body">
-          <h3>${escapeHtml(p.name || "")}</h3>
-          <div class="price">${escapeHtml(priceText)}</div>
-          <p class="muted">${escapeHtml(p.category || "")} • ${p.active ? "Activo" : "Inactivo"}</p>
+
+        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+          <button class="btn ghost" data-del="${d.id}" type="button">Borrar</button>
         </div>
-      </article>
+      </div>
     `;
   }).join("");
 }
 
-async function boot(){
-  // Buttons
-  $("saveProduct")?.addEventListener("click", saveProduct);
-  $("refreshProducts")?.addEventListener("click", renderAdminProducts);
-  $("reloadManifest")?.addEventListener("click", async () => {
-    try{
-      await loadManifest();
-      fillImagesForCategory($("pCategory")?.value || "");
-      alert("Manifest recargado ✅");
-    }catch(e){
-      alert("No se pudo recargar manifest: " + e.message);
-    }
-  });
+if (refreshListBtn) refreshListBtn.addEventListener("click", loadProductsList);
 
-  await loadManifest();
-  wirePickers();
-  await renderAdminProducts();
-}
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-del]");
+  if (!btn) return;
 
-boot();
+  const id = btn.getAttribute("data-del");
+  if (!id) return;
+
+  const ok = confirm("¿Borrar este producto?");
+  if (!ok) return;
+
+  try {
+    await deleteDoc(doc(db, "products", id));
+    await loadProductsList();
+  } catch (e) {
+    console.error(e);
+    alert("No se pudo borrar. Revisa consola.");
+  }
+});
