@@ -69,7 +69,6 @@ function updateCartBadge() {
 }
 
 function updateCartHeight() {
-  // crecimiento según cantidad total (sumando qty)
   const count = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
 
   let h = 52;
@@ -105,7 +104,7 @@ function addToCart(product) {
       id,
       name: product.name || "Producto",
       price: (product.price ?? product.priceFrom ?? ""),
-      imagePath: product.imagePath || "",
+      imagePath: product.imagePath || "", // URL directa
       qty: 1
     });
   }
@@ -162,13 +161,17 @@ function renderCart() {
 
   cartItemsEl.innerHTML = cart
     .map((it) => {
-      const img = it.imagePath ? `./${it.imagePath}` : "";
+      const img = it.imagePath || ""; // ✅ URL directa, SIN ./
       const safeName = escapeHtml(it.name || "Producto");
 
       return `
         <div class="cart-item">
           <div class="cart-thumb">
-            ${img ? `<img src="${img}" alt="${safeName}" loading="lazy">` : ""}
+            ${
+              img
+                ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+                : ""
+            }
           </div>
 
           <div class="cart-info">
@@ -239,7 +242,6 @@ function setupCartUI() {
     });
   }
 
-  // Botones dentro del carrito (delegación)
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-act]");
     if (!btn) return;
@@ -281,18 +283,21 @@ function renderProducts(list) {
 
   productsGrid.innerHTML = list
     .map((p, i) => {
-      const img = p.imagePath ? `./${p.imagePath}` : "";
+      const img = p.imagePath || ""; // ✅ URL directa, SIN ./
       const price = (p.price ?? p.priceFrom ?? "");
       const priceText = price !== "" ? `$${price}` : "";
       const safeName = escapeHtml(p.name || "Producto");
 
-      // Stagger animation delay based on index
-      const delay = i * 100;
+      const delay = i * 80;
 
       return `
-        <article class="card product reveal" style="animation-delay: ${delay}ms">
+        <article class="card product reveal" style="animation-delay:${delay}ms">
           <div class="media">
-            ${img ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">` : ""}
+            ${
+              img
+                ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+                : ""
+            }
           </div>
 
           <div class="body">
@@ -310,7 +315,6 @@ function renderProducts(list) {
     })
     .join("");
 
-  // Re-observe new elements
   observeReveal();
 }
 
@@ -333,7 +337,7 @@ function applyFilters() {
 
 function renderSkeleton() {
   if (!productsGrid) return;
-  // Render 6 skeleton cards
+
   productsGrid.innerHTML = Array(6).fill(0).map(() => `
     <article class="card product">
       <div class="media skeleton"></div>
@@ -342,8 +346,8 @@ function renderSkeleton() {
         <div class="skeleton" style="height:16px; width:40%; margin-bottom:12px;"></div>
         <div class="skeleton" style="height:40px; width:100%;"></div>
         <div style="margin-top:auto; display:flex; gap:10px;">
-           <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
-           <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
+          <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
+          <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
         </div>
       </div>
     </article>
@@ -353,7 +357,7 @@ function renderSkeleton() {
 async function loadProducts() {
   if (!productsGrid) return;
 
-  renderSkeleton(); // Show skeleton immediately
+  renderSkeleton();
 
   try {
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
@@ -380,6 +384,9 @@ async function loadProducts() {
  *  Animations (Scroll Reveal)
  *  ========================= */
 function observeReveal() {
+  const els = document.querySelectorAll(".reveal");
+  if (!els.length) return;
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -387,10 +394,10 @@ function observeReveal() {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.1 });
+  }, { threshold: 0.12 });
 
-  document.querySelectorAll('.reveal').forEach(el => {
-    el.style.animationPlayState = "paused"; // Pause initially
+  els.forEach(el => {
+    el.style.animationPlayState = "paused";
     observer.observe(el);
   });
 }
@@ -491,9 +498,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCakeWhatsApp();
   setupProductActions();
 
-  // Initialize animations for static content
-  document.querySelectorAll('.hero, .section-head, .form-wrap, .about-text').forEach(el => el.classList.add('reveal'));
-  observeReveal();
+  document.querySelectorAll(".hero, .section-head, .form-wrap, .about-text")
+    .forEach(el => el.classList.add("reveal"));
 
+  observeReveal();
   loadProducts();
 });
