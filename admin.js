@@ -262,7 +262,8 @@ async function loadAdminProducts() {
       // Check if image is Base64 (starts with data:) or a path
       let imgSrc = "";
       if (p.imagePath) {
-        imgSrc = p.imagePath.startsWith("data:") ? p.imagePath : `../${p.imagePath}`;
+        // Fix for GitHub Pages: remove ../ because admin.html is at root too
+        imgSrc = p.imagePath.startsWith("data:") ? p.imagePath : p.imagePath;
       }
 
       const isDraft = p.active === false;
