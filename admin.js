@@ -1,4 +1,4 @@
-import { auth, db } from "./firebase.js";
+import { auth, db } from "./firebase_config.js";
 
 import {
   GoogleAuthProvider,
@@ -12,6 +12,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
   doc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -216,15 +217,24 @@ async function loadAdminProducts() {
         imgSrc = p.imagePath.startsWith("data:") ? p.imagePath : `../${p.imagePath}`;
       }
 
+      const isDraft = p.active === false;
+      const statusLabel = isDraft ? '<span style="color:orange; font-weight:bold;">(Borrador)</span>' : '<span style="color:green; font-weight:bold;">(Visible)</span>';
+      const toggleBtnText = isDraft ? 'Publicar' : 'Ocultar';
+      const toggleBtnStyle = isDraft ? 'background: #28a745; color: white;' : 'background: #6c757d; color: white;';
+
       return `
-        <div class="item">
+        <div class="item" style="${isDraft ? 'opacity: 0.7; background: #fff5f5;' : ''}">
           <img src="${imgSrc}" alt="img" onerror="this.style.background='#eee'">
-          <div>
-            <h4>${escapeHtml(p.name)}</h4>
+          <div style="flex:1; padding: 0 10px;">
+            <h4>${escapeHtml(p.name)} ${statusLabel}</h4>
             <p>${escapeHtml(p.description)}</p>
             <div class="price">$${p.price}</div>
           </div>
-          <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="deleteProduct('${p.id}')">Borrar</button>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <button class="btn" style="padding:6px 10px; font-size:12px; ${toggleBtnStyle}" 
+              onclick="toggleVisibility('${p.id}', ${p.active})">${toggleBtnText}</button>
+            <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="deleteProduct('${p.id}')">Borrar</button>
+          </div>
         </div>
       `;
     }).join("");
@@ -236,12 +246,26 @@ async function loadAdminProducts() {
 }
 
 // Make globally available for onclick
-window.deleteProduct = async (id) => {
-  if (!confirm("¿Seguro que quieres borrar este producto?")) return;
-  try {
-    await deleteDoc(doc(db, "products", id));
-    loadAdminProducts();
+await deleteDoc(doc(db, "products", id));
+loadAdminProducts();
   } catch (e) {
-    alert("Error borrando: " + e.message);
-  }
+  alert("Error borrando: " + e.message);
+}
 };
+
+window.toggleVisibility = async (id, currentStatus) => {
+  try {
+    const docRef = doc(db, "products", id);
+    // Toggle: if current is true (or undefined), make false. If false, make true.
+    const newStatus = currentStatus === false ? true : false;
+
+    // We need to import updateDoc to be efficient, but for now setDoc with merge or just re-add is basic.
+    // Let's assume we need to import updateDoc at the top, but since we are replacing content, 
+    // I'll add the import in a separate call or just use a helper. 
+    // Actually, I'll need to update the imports at the top of the file first.
+    // HOLD ON: I should update imports first. 
+
+    // Let's use the notify user to say I'm doing it. 
+  } catch (e) { console.error(e); }
+};
+// ... Wait, I'll do this in a multi-step to get imports right.
