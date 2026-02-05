@@ -12,14 +12,16 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  updateDoc
+  doc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /** =========================
  *  CONFIG
  *  ========================= */
-const ALLOWED_EMAILS = ["osvillat@gmail.com"]; // cámbialo si quieres permitir más
+const ALLOWED_EMAILS = [
+  "osvillat@gmail.com",
+  "calderamoralesmarisol@gmail.com"
+];
 
 /** =========================
  *  ELEMENTS
@@ -30,9 +32,21 @@ const loginBox = $("loginBox");
 const adminPanel = $("adminPanel");
 const loginBtn = $("loginGoogle");
 const logoutBtn = $("logoutBtn");
+const userChip = $("userChip");
 
-const form = $("productForm");
-const listEl = $("adminList");
+// Admin form elements
+const saveBtn = $("saveProduct");
+const resetBtn = $("resetForm");
+const statusEl = $("status");
+const productsListEl = $("productsList");
+
+// Form inputs
+const pName = $("pName");
+const pPrice = $("pPrice");
+const pCategory = $("pCategory");
+const pDesc = $("pDesc");
+const pImage = $("pImage");
+const previewImg = $("previewImg");
 
 /** =========================
  *  AUTH
@@ -44,7 +58,7 @@ async function login() {
     await signInWithPopup(auth, provider);
   } catch (err) {
     console.error("Login error:", err);
-    alert("No se pudo iniciar sesión. Revisa consola.");
+    alert("Error al iniciar sesión: " + err.message);
   }
 }
 
@@ -52,7 +66,7 @@ async function logout() {
   try {
     await signOut(auth);
   } catch (err) {
-    console.error("Logout error:", err);
+    console.error(err);
   }
 }
 
@@ -61,26 +75,43 @@ if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    if (loginBox) loginBox.style.display = "block";
-    if (adminPanel) adminPanel.style.display = "none";
+    showLogin();
     return;
   }
 
-  // Bloqueo por email
-  if (ALLOWED_EMAILS.length && !ALLOWED_EMAILS.includes(user.email)) {
-    alert("No autorizado.");
+  // Verificar email autorizado
+  if (!ALLOWED_EMAILS.includes(user.email)) {
+    alert(`El correo ${user.email} no está autorizado.`);
     signOut(auth);
     return;
   }
 
+  // Usuario autorizado
+  showAdmin(user);
+});
+
+function showLogin() {
+  if (loginBox) loginBox.style.display = "block";
+  if (adminPanel) adminPanel.style.display = "none";
+  if (userChip) userChip.style.display = "none";
+  if (logoutBtn) logoutBtn.style.display = "none";
+}
+
+function showAdmin(user) {
   if (loginBox) loginBox.style.display = "none";
   if (adminPanel) adminPanel.style.display = "block";
 
+  if (userChip) {
+    userChip.textContent = user.email;
+    userChip.style.display = "inline-flex";
+  }
+  if (logoutBtn) logoutBtn.style.display = "inline-flex";
+
   loadAdminProducts();
-});
+}
 
 /** =========================
- *  CRUD PRODUCTS (ADMIN)
+ *  PRODUCTS Logic
  *  ========================= */
 function escapeHtml(str = "") {
   return String(str)
@@ -91,112 +122,126 @@ function escapeHtml(str = "") {
     .replaceAll("'", "&#039;");
 }
 
+/* Upload simulation (since we don't have Storage setup yet)
+   We will read the file as DataURL to preview it, 
+   but for the DB we'll just ask for a URL or save the filename 
+   (Note: Real file upload requires Firebase Storage) */
+let currentImageBase64 = "";
+
+if (pImage) {
+  pImage.addEventListener("change", () => {
+    const file = pImage.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      currentImageBase64 = e.target.result;
+      if (previewImg) {
+        previewImg.src = currentImageBase64;
+        previewImg.style.display = "block";
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+if (saveBtn) {
+  saveBtn.addEventListener("click", async () => {
+    const name = pName?.value?.trim();
+    if (!name) return alert("El nombre es obligatorio");
+
+    statusEl.textContent = "Guardando...";
+    saveBtn.disabled = true;
+
+    try {
+      // NOTE: Using the base64 as imagePath is heavy for Firestore, 
+      // but without Storage it's the only way to show custom uploaded images locally.
+      // Ideally: Upload to Storage -> Get URL -> Save URL.
+      // For now, if "currentImageBase64" exists, we use it (Data URI).
+
+      const product = {
+        name,
+        price: pPrice?.value || "",
+        category: pCategory?.value || "",
+        description: pDesc?.value || "",
+        imagePath: currentImageBase64 || "", // Guarda la imagen en Base64 (Heavy but works for demo)
+        createdAt: Date.now()
+      };
+
+      await addDoc(collection(db, "products"), product);
+
+      alert("Producto guardado correctamente");
+      if (resetBtn) resetBtn.click();
+      loadAdminProducts();
+
+    } catch (e) {
+      console.error(e);
+      alert("Error guardando: " + e.message);
+    } finally {
+      statusEl.textContent = "";
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+if (resetBtn) {
+  resetBtn.addEventListener("click", () => {
+    pName.value = "";
+    pPrice.value = "";
+    pCategory.value = "";
+    pDesc.value = "";
+    pImage.value = "";
+    currentImageBase64 = "";
+    if (previewImg) previewImg.style.display = "none";
+  });
+}
+
 async function loadAdminProducts() {
-  if (!listEl) return;
-  listEl.innerHTML = "Cargando...";
+  if (!productsListEl) return;
+  productsListEl.innerHTML = "<p class='muted'>Cargando...</p>";
 
   try {
     const snap = await getDocs(collection(db, "products"));
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    if (!items.length) {
-      listEl.innerHTML = "<p class='muted'>Aún no hay productos.</p>";
+    if (products.length === 0) {
+      productsListEl.innerHTML = "<p class='muted'>No hay productos aún.</p>";
       return;
     }
 
-    listEl.innerHTML = items.map(p => {
-      const name = escapeHtml(p.name || "Producto");
-      const price = (p.price ?? p.priceFrom ?? "");
-      const desc = escapeHtml(p.description || "");
-      const cat = escapeHtml(p.category || "");
-      const img = p.imagePath ? `../${p.imagePath}` : "";
+    productsListEl.innerHTML = products.map(p => {
+      // Check if image is Base64 (starts with data:) or a path
+      let imgSrc = "";
+      if (p.imagePath) {
+        imgSrc = p.imagePath.startsWith("data:") ? p.imagePath : `../${p.imagePath}`;
+      }
 
       return `
-        <div class="card" style="padding:14px; margin-bottom:12px;">
-          <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:90px; height:90px; border-radius:12px; overflow:hidden; background:#fff; border:1px solid rgba(0,0,0,.08);">
-              ${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" />` : ""}
-            </div>
-
-            <div style="flex:1;">
-              <strong>${name}</strong>
-              <div class="muted" style="margin-top:4px;">${cat ? `Categoría: ${cat}` : ""}</div>
-              <div style="margin-top:4px; font-weight:900;">${price !== "" ? `$${price}` : ""}</div>
-              <div class="muted" style="margin-top:6px;">${desc}</div>
-
-              <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn ghost" data-edit="${p.id}" type="button">Editar</button>
-                <button class="btn primary" data-del="${p.id}" type="button">Eliminar</button>
-              </div>
-            </div>
+        <div class="item">
+          <img src="${imgSrc}" alt="img" onerror="this.style.background='#eee'">
+          <div>
+            <h4>${escapeHtml(p.name)}</h4>
+            <p>${escapeHtml(p.description)}</p>
+            <div class="price">$${p.price}</div>
           </div>
+          <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="deleteProduct('${p.id}')">Borrar</button>
         </div>
       `;
     }).join("");
 
-  } catch (err) {
-    console.error("Load products error:", err);
-    listEl.innerHTML = "<p class='muted'>Error cargando productos (revisa consola).</p>";
+  } catch (e) {
+    console.error(e);
+    productsListEl.innerHTML = "<p class='muted'>Error cargando productos.</p>";
   }
 }
 
-async function createProduct(data) {
-  await addDoc(collection(db, "products"), data);
-  await loadAdminProducts();
-}
-
-async function removeProduct(id) {
-  await deleteDoc(doc(db, "products", id));
-  await loadAdminProducts();
-}
-
-/** =========================
- *  EVENTS
- *  ========================= */
-document.addEventListener("click", async (e) => {
-  const del = e.target.closest("[data-del]");
-  if (del) {
-    const id = del.getAttribute("data-del");
-    if (confirm("¿Eliminar este producto?")) {
-      try {
-        await removeProduct(id);
-      } catch (err) {
-        console.error(err);
-        alert("No se pudo eliminar.");
-      }
-    }
+// Make globally available for onclick
+window.deleteProduct = async (id) => {
+  if (!confirm("¿Seguro que quieres borrar este producto?")) return;
+  try {
+    await deleteDoc(doc(db, "products", id));
+    loadAdminProducts();
+  } catch (e) {
+    alert("Error borrando: " + e.message);
   }
-});
-
-if (form) {
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const name = $("pName")?.value?.trim() || "";
-    const price = $("pPrice")?.value?.trim() || "";
-    const category = $("pCategory")?.value?.trim() || "";
-    const description = $("pDesc")?.value?.trim() || "";
-    const imagePath = $("pImage")?.value?.trim() || "";
-
-    if (!name) return alert("Falta el nombre.");
-
-    const data = {
-      name,
-      category,
-      description,
-      imagePath,
-      // guarda price como number si se puede
-      price: price === "" ? "" : Number(price),
-      createdAt: Date.now()
-    };
-
-    try {
-      await createProduct(data);
-      form.reset();
-      alert("Producto guardado ✅");
-    } catch (err) {
-      console.error(err);
-      alert("Error guardando producto. Revisa consola.");
-    }
-  });
-}
+};
