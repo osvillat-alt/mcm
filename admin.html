@@ -1,60 +1,113 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — MCM Repostería</title>
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    .admin-wrap{ max-width: 980px; margin: 0 auto; padding: 24px 18px; }
-    .admin-top{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    .admin-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 18px;
+    }
+
+    .admin-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       margin-bottom: 14px;
     }
-    .admin-card{ padding: 16px; }
-    .admin-grid{
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:14px;
-      align-items:start;
+
+    .admin-card {
+      padding: 16px;
     }
-    .admin-row{ display:grid; gap:10px; }
-    .preview{
-      border:1px solid rgba(0,0,0,.10);
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .admin-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview {
+      border: 1px solid rgba(0, 0, 0, .10);
       border-radius: 16px;
       padding: 12px;
-      background: rgba(255,255,255,.75);
+      background: rgba(255, 255, 255, .75);
     }
-    .preview img{ width:100%; height:auto; display:block; border-radius: 12px; }
-    .list{
-      display:grid;
-      gap:10px;
+
+    .preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
       margin-top: 12px;
     }
-    .item{
-      display:grid;
+
+    .item {
+      display: grid;
       grid-template-columns: 74px 1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:10px;
-      border:1px solid rgba(0,0,0,.08);
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(0, 0, 0, .08);
       border-radius: 16px;
-      background:#fff;
+      background: #fff;
     }
-    .item img{
-      width:74px; height:74px; object-fit:cover; border-radius: 12px; display:block;
-      background: rgba(0,0,0,.04);
+
+    .item img {
+      width: 74px;
+      height: 74px;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+      background: rgba(0, 0, 0, .04);
     }
-    .item h4{ margin:0; font-size: 14px; }
-    .item p{ margin:2px 0 0; font-size: 12px; color: var(--muted); }
-    .item .price{ font-weight: 900; color: var(--accent); margin-top:6px; }
-    .tag{
-      display:inline-flex; padding: 6px 10px; border-radius:999px;
-      border:1px solid rgba(0,0,0,.10); background: rgba(246,183,200,.25);
-      font-weight:800; font-size: 12px;
+
+    .item h4 {
+      margin: 0;
+      font-size: 14px;
     }
-    @media (max-width: 860px){
-      .admin-grid{ grid-template-columns: 1fr; }
+
+    .item p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .item .price {
+      font-weight: 900;
+      color: var(--accent);
+      margin-top: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: rgba(246, 183, 200, .25);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    @media (max-width: 860px) {
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -63,7 +116,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <a class="brand" href="./index.html" aria-label="Volver a MCM">
-        <img src="./assets/logo.png" alt="MCM" class="brand-logo"/>
+        <img src="./assets/logo.png" alt="MCM" class="brand-logo" />
       </a>
 
       <div class="topbar-actions">
@@ -88,7 +141,7 @@
       <p class="muted" style="margin:0 0 14px;">Solo usuarios autorizados pueden editar productos.</p>
       <button id="loginGoogle" class="btn primary" type="button">Entrar con Google</button>
       <p class="muted" style="margin:12px 0 0; font-size:13px;">
-      <!-- Si te sale un error de dominios autorizados, hay que agregar tu dominio en Firebase (te digo cómo).-->
+        <!-- Si te sale un error de dominios autorizados, hay que agregar tu dominio en Firebase (te digo cómo).-->
       </p>
     </section>
 
@@ -117,8 +170,16 @@
               <textarea id="pDesc" placeholder="Ej. Pay de oreo 20 cm..."></textarea>
             </label>
 
-            <label>Imagen (JPG/PNG)
-              <input id="pImage" type="file" accept="image/*" />
+            <label>Imagen
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Option 1: File Upload -->
+                <input id="pImage" type="file" accept="image/*" />
+                <div style="text-align:center; font-size:12px; color:#aaa;">— O —</div>
+                <!-- Option 2: Select from Manifest -->
+                <select id="pAssetSelect" style="padding:8px; border-radius:8px; border:1px solid #ddd;">
+                  <option value="">Seleccionar de mis Assets...</option>
+                </select>
+              </div>
             </label>
 
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -152,6 +213,7 @@
 
   </main>
 
-  <script type="module" src="./admin.js"></script>
+  <script type="module" src="./admin.js?v=3"></script>
 </body>
+
 </html>
