@@ -4,11 +4,14 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDf7L23Q9Tz0eOQupzkUInMQtSHDvs14QA",
+  apiKey: "AIzaSyDf7l23Q9Tz0e0QupzkUlnMQtSHDvs14QA",
   authDomain: "mcm-reposteria.firebaseapp.com",
+  databaseURL: "https://mcm-reposteria-default-rtdb.firebaseio.com",
   projectId: "mcm-reposteria",
-  messagingSenderId: "563376694610",
-  appId: "1:563376694610:web:deb011d387a85c7d8bc63"
+  storageBucket: "mcm-reposteria.firebasestorage.app",
+  messagingSenderId: "563376696410",
+  appId: "1:563376696410:web:deb011d387a85fc7d8bc63",
+  measurementId: "G-F6EJR7FKVC"
 };
 
 
