@@ -1,4 +1,4 @@
-import { db } from "./firebase.js";
+import { db } from "./firebase_config.js";
 import {
   collection,
   getDocs,
@@ -167,11 +167,10 @@ function renderCart() {
       return `
         <div class="cart-item">
           <div class="cart-thumb">
-            ${
-              img
-                ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
-                : ""
-            }
+            ${img
+          ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+          : ""
+        }
           </div>
 
           <div class="cart-info">
@@ -293,11 +292,10 @@ function renderProducts(list) {
       return `
         <article class="card product reveal" style="animation-delay:${delay}ms">
           <div class="media">
-            ${
-              img
-                ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
-                : ""
-            }
+            ${img
+          ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+          : ""
+        }
           </div>
 
           <div class="body">
@@ -362,11 +360,16 @@ async function loadProducts() {
   try {
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
-    allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // Filter out products that are explicitly marked as inactive (drafts)
+    allProducts = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter(p => p.active !== false); // Default to true if properties missing
   } catch (e) {
     console.warn("Firestore error, falling back to basic fetch", e);
     const snap = await getDocs(collection(db, "products"));
-    allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    allProducts = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter(p => p.active !== false);
   }
 
   if (categoryFilter) {
