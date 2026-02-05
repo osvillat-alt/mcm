@@ -1,33 +1,87 @@
-import { db, auth, storage } from "./firebase.js";
+import { auth, db } from "./firebase.js";
+
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  onAuthStateChanged,
   signOut,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 import {
   collection,
   addDoc,
   getDocs,
-  query,
-  orderBy,
-  serverTimestamp,
   deleteDoc,
   doc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+/** =========================
+ *  CONFIG
+ *  ========================= */
+const ALLOWED_EMAILS = ["osvillat@gmail.com"]; // cámbialo si quieres permitir más
 
 /** =========================
- *  Helpers
+ *  ELEMENTS
  *  ========================= */
 const $ = (id) => document.getElementById(id);
 
+const loginBox = $("loginBox");
+const adminPanel = $("adminPanel");
+const loginBtn = $("loginGoogle");
+const logoutBtn = $("logoutBtn");
+
+const form = $("productForm");
+const listEl = $("adminList");
+
+/** =========================
+ *  AUTH
+ *  ========================= */
+const provider = new GoogleAuthProvider();
+
+async function login() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("No se pudo iniciar sesión. Revisa consola.");
+  }
+}
+
+async function logout() {
+  try {
+    await signOut(auth);
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
+}
+
+if (loginBtn) loginBtn.addEventListener("click", login);
+if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    if (loginBox) loginBox.style.display = "block";
+    if (adminPanel) adminPanel.style.display = "none";
+    return;
+  }
+
+  // Bloqueo por email
+  if (ALLOWED_EMAILS.length && !ALLOWED_EMAILS.includes(user.email)) {
+    alert("No autorizado.");
+    signOut(auth);
+    return;
+  }
+
+  if (loginBox) loginBox.style.display = "none";
+  if (adminPanel) adminPanel.style.display = "block";
+
+  loadAdminProducts();
+});
+
+/** =========================
+ *  CRUD PRODUCTS (ADMIN)
+ *  ========================= */
 function escapeHtml(str = "") {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -37,252 +91,112 @@ function escapeHtml(str = "") {
     .replaceAll("'", "&#039;");
 }
 
-function money(n) {
-  const v = Number(n);
-  if (Number.isNaN(v)) return "";
-  return `$${v.toFixed(0)}`;
-}
+async function loadAdminProducts() {
+  if (!listEl) return;
+  listEl.innerHTML = "Cargando...";
 
-function setStatus(msg) {
-  const el = $("status");
-  if (el) el.textContent = msg || "";
-}
+  try {
+    const snap = await getDocs(collection(db, "products"));
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-/** =========================
- *  Auth UI
- *  ========================= */
-const provider = new GoogleAuthProvider();
-
-const loginBox = $("loginBox");
-const adminPanel = $("adminPanel");
-const loginGoogleBtn = $("loginGoogle");
-const logoutBtn = $("logoutBtn");
-const userChip = $("userChip");
-
-/** Solo tú (opcional): pon tu correo aquí */
-const ALLOWED_EMAILS = [
-  "osvillat@gmail.com",
-  "calderamoralesmarisol@gmail.com"
-];
-
-function isAllowedUser(user) {
-  if (!user) return false;
-  if (!ALLOWED_EMAILS.length) return true; 
-  return ALLOWED_EMAILS.includes(user.email);
-}
-
-if (loginGoogleBtn) {
-  loginGoogleBtn.addEventListener("click", async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo iniciar sesión. Revisa consola.");
-    }
-  });
-}
-
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    await signOut(auth);
-  });
-}
-
-onAuthStateChanged(auth, (user) => {
-  if (user && isAllowedUser(user)) {
-    if (loginBox) loginBox.style.display = "none";
-    if (adminPanel) adminPanel.style.display = "block";
-    if (logoutBtn) logoutBtn.style.display = "inline-flex";
-
-    if (userChip) {
-      userChip.style.display = "inline-flex";
-      userChip.textContent = user.email || "Sesión iniciada";
-    }
-
-    // cargar lista al entrar
-    loadProductsList();
-  } else {
-    if (loginBox) loginBox.style.display = "block";
-    if (adminPanel) adminPanel.style.display = "none";
-    if (logoutBtn) logoutBtn.style.display = "none";
-
-    if (userChip) {
-      userChip.style.display = "none";
-      userChip.textContent = "";
-    }
-  }
-});
-catch (err) {
-  console.error("LOGIN ERROR:", err);
-  alert("No se pudo iniciar sesión. Revisa consola.\n\n" + (err?.code || "") + " " + (err?.message || ""));
-}
-
-
-/** =========================
- *  Form Elements
- *  ========================= */
-const pName = $("pName");
-const pPrice = $("pPrice");
-const pCategory = $("pCategory");
-const pDesc = $("pDesc");
-const pImage = $("pImage");
-
-const previewImg = $("previewImg");
-const saveProductBtn = $("saveProduct");
-const resetFormBtn = $("resetForm");
-
-const productsList = $("productsList");
-const refreshListBtn = $("refreshList");
-
-/** Preview */
-if (pImage) {
-  pImage.addEventListener("change", () => {
-    const file = pImage.files?.[0];
-    if (!file) {
-      if (previewImg) previewImg.style.display = "none";
+    if (!items.length) {
+      listEl.innerHTML = "<p class='muted'>Aún no hay productos.</p>";
       return;
     }
-    const url = URL.createObjectURL(file);
-    if (previewImg) {
-      previewImg.src = url;
-      previewImg.style.display = "block";
+
+    listEl.innerHTML = items.map(p => {
+      const name = escapeHtml(p.name || "Producto");
+      const price = (p.price ?? p.priceFrom ?? "");
+      const desc = escapeHtml(p.description || "");
+      const cat = escapeHtml(p.category || "");
+      const img = p.imagePath ? `../${p.imagePath}` : "";
+
+      return `
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:90px; height:90px; border-radius:12px; overflow:hidden; background:#fff; border:1px solid rgba(0,0,0,.08);">
+              ${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" />` : ""}
+            </div>
+
+            <div style="flex:1;">
+              <strong>${name}</strong>
+              <div class="muted" style="margin-top:4px;">${cat ? `Categoría: ${cat}` : ""}</div>
+              <div style="margin-top:4px; font-weight:900;">${price !== "" ? `$${price}` : ""}</div>
+              <div class="muted" style="margin-top:6px;">${desc}</div>
+
+              <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn ghost" data-edit="${p.id}" type="button">Editar</button>
+                <button class="btn primary" data-del="${p.id}" type="button">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+  } catch (err) {
+    console.error("Load products error:", err);
+    listEl.innerHTML = "<p class='muted'>Error cargando productos (revisa consola).</p>";
+  }
+}
+
+async function createProduct(data) {
+  await addDoc(collection(db, "products"), data);
+  await loadAdminProducts();
+}
+
+async function removeProduct(id) {
+  await deleteDoc(doc(db, "products", id));
+  await loadAdminProducts();
+}
+
+/** =========================
+ *  EVENTS
+ *  ========================= */
+document.addEventListener("click", async (e) => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    const id = del.getAttribute("data-del");
+    if (confirm("¿Eliminar este producto?")) {
+      try {
+        await removeProduct(id);
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar.");
+      }
+    }
+  }
+});
+
+if (form) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = $("pName")?.value?.trim() || "";
+    const price = $("pPrice")?.value?.trim() || "";
+    const category = $("pCategory")?.value?.trim() || "";
+    const description = $("pDesc")?.value?.trim() || "";
+    const imagePath = $("pImage")?.value?.trim() || "";
+
+    if (!name) return alert("Falta el nombre.");
+
+    const data = {
+      name,
+      category,
+      description,
+      imagePath,
+      // guarda price como number si se puede
+      price: price === "" ? "" : Number(price),
+      createdAt: Date.now()
+    };
+
+    try {
+      await createProduct(data);
+      form.reset();
+      alert("Producto guardado ✅");
+    } catch (err) {
+      console.error(err);
+      alert("Error guardando producto. Revisa consola.");
     }
   });
 }
-
-function resetForm() {
-  if (pName) pName.value = "";
-  if (pPrice) pPrice.value = "";
-  if (pCategory) pCategory.value = "";
-  if (pDesc) pDesc.value = "";
-  if (pImage) pImage.value = "";
-  if (previewImg) previewImg.style.display = "none";
-  setStatus("");
-}
-
-if (resetFormBtn) resetFormBtn.addEventListener("click", resetForm);
-
-/** =========================
- *  Save Product (Firestore + Storage)
- *  ========================= */
-async function uploadImageAndGetPath(file) {
-  // Guardamos en Storage y también guardamos una ruta relativa "assets/..."
-  const safeName = file.name.replaceAll(" ", "_");
-  const path = `products/${Date.now()}_${safeName}`;
-  const storageRef = ref(storage, path);
-
-  await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(storageRef);
-
-  return { storagePath: path, downloadURL: url };
-}
-
-async function saveProduct() {
-  const user = auth.currentUser;
-  if (!user || !isAllowedUser(user)) {
-    alert("No autorizado. Inicia sesión primero.");
-    return;
-  }
-
-  const name = pName?.value?.trim() || "";
-  const price = pPrice?.value ? Number(pPrice.value) : "";
-  const category = pCategory?.value?.trim() || "";
-  const description = pDesc?.value?.trim() || "";
-
-  if (!name) return alert("Pon un nombre.");
-  if (price === "") return alert("Pon un precio (número).");
-
-  const file = pImage?.files?.[0];
-  if (!file) return alert("Sube una imagen.");
-
-  setStatus("Subiendo imagen...");
-
-  try {
-    const { storagePath, downloadURL } = await uploadImageAndGetPath(file);
-
-    setStatus("Guardando producto...");
-
-    // Guardamos en Firestore lo necesario para tu catálogo
-    await addDoc(collection(db, "products"), {
-      name,
-      price,
-      category,
-      description,
-      imagePath: downloadURL, // Usaremos URL directa para evitar rutas raras en Vercel/GH
-      storagePath,            
-      createdAt: serverTimestamp(),
-    });
-
-    setStatus("✅ Producto guardado.");
-    resetForm();
-    await loadProductsList();
-  } catch (e) {
-    console.error(e);
-    setStatus("❌ Error guardando. Revisa consola.");
-  }
-}
-
-if (saveProductBtn) saveProductBtn.addEventListener("click", saveProduct);
-
-/** =========================
- *  List + Delete
- *  ========================= */
-async function loadProductsList() {
-  if (!productsList) return;
-
-  productsList.innerHTML = `<p class="muted">Cargando...</p>`;
-
-  const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-
-  if (snap.empty) {
-    productsList.innerHTML = `<p class="muted">Aún no hay productos.</p>`;
-    return;
-  }
-
-  productsList.innerHTML = snap.docs.map((d) => {
-    const p = d.data();
-    const img = p.imagePath || "";
-    const name = escapeHtml(p.name || "Producto");
-    const cat = escapeHtml(p.category || "sin categoría");
-    const desc = escapeHtml(p.description || "");
-    const price = p.price !== undefined ? money(p.price) : "";
-
-    return `
-      <div class="item">
-        ${img ? `<img src="${img}" alt="${name}">` : `<div></div>`}
-
-        <div>
-          <h4>${name}</h4>
-          <div class="price">${price}</div>
-          <p>${cat}${desc ? " • " + desc : ""}</p>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-          <button class="btn ghost" data-del="${d.id}" type="button">Borrar</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-if (refreshListBtn) refreshListBtn.addEventListener("click", loadProductsList);
-
-document.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-del]");
-  if (!btn) return;
-
-  const id = btn.getAttribute("data-del");
-  if (!id) return;
-
-  const ok = confirm("¿Borrar este producto?");
-  if (!ok) return;
-
-  try {
-    await deleteDoc(doc(db, "products", id));
-    await loadProductsList();
-  } catch (e) {
-    console.error(e);
-    alert("No se pudo borrar. Revisa consola.");
-  }
-});
