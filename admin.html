@@ -3,83 +3,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Admin | MCM Repostería</title>
-  <link rel="stylesheet" href="./styles.css"/>
+  <title>Admin — MCM Repostería</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .admin-wrap{ max-width: 980px; margin: 0 auto; padding: 24px 18px; }
+    .admin-top{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom: 14px;
+    }
+    .admin-card{ padding: 16px; }
+    .admin-grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+      align-items:start;
+    }
+    .admin-row{ display:grid; gap:10px; }
+    .preview{
+      border:1px solid rgba(0,0,0,.10);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,.75);
+    }
+    .preview img{ width:100%; height:auto; display:block; border-radius: 12px; }
+    .list{
+      display:grid;
+      gap:10px;
+      margin-top: 12px;
+    }
+    .item{
+      display:grid;
+      grid-template-columns: 74px 1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:10px;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius: 16px;
+      background:#fff;
+    }
+    .item img{
+      width:74px; height:74px; object-fit:cover; border-radius: 12px; display:block;
+      background: rgba(0,0,0,.04);
+    }
+    .item h4{ margin:0; font-size: 14px; }
+    .item p{ margin:2px 0 0; font-size: 12px; color: var(--muted); }
+    .item .price{ font-weight: 900; color: var(--accent); margin-top:6px; }
+    .tag{
+      display:inline-flex; padding: 6px 10px; border-radius:999px;
+      border:1px solid rgba(0,0,0,.10); background: rgba(246,183,200,.25);
+      font-weight:800; font-size: 12px;
+    }
+    @media (max-width: 860px){
+      .admin-grid{ grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
+
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
-      <a class="brand" href="./index.html" aria-label="Volver al sitio">
-        <img src="./assets/logo.png" alt="MCM Repostería" class="brand-logo"/>
+      <a class="brand" href="./index.html" aria-label="Volver a MCM">
+        <img src="./assets/logo.png" alt="MCM" class="brand-logo"/>
       </a>
-      <div class="admin-head">
-        <span class="muted">Panel de administración</span>
-        <a class="cta" href="./index.html#productos">Ver sitio</a>
+
+      <div class="topbar-actions">
+        <a class="cta" href="./index.html">Volver</a>
       </div>
     </div>
   </header>
 
-  <main class="section">
-    <div class="container">
-      <div class="section-head">
-        <h2>Agregar producto</h2>
-        <div class="filters">
-          <button class="btn ghost" id="reloadManifest">Recargar manifest</button>
-        </div>
+  <main class="admin-wrap">
+
+    <div class="admin-top">
+      <h2 style="margin:0;">Admin — Catálogo</h2>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span id="userChip" class="tag" style="display:none;"></span>
+        <button id="logoutBtn" class="btn ghost" style="display:none;">Cerrar sesión</button>
       </div>
-
-      <div class="card form-wrap">
-        <div class="form-grid">
-          <label>Nombre
-            <input id="pName" type="text" placeholder="Ej. Pastel de chocolate"/>
-          </label>
-
-          <label>Precio (MXN)
-            <input id="pPrice" type="number" placeholder="Ej. 450"/>
-          </label>
-
-          <label>Categoría
-            <select id="pCategory">
-              <option value="">Selecciona</option>
-              <option value="pasteles">Pasteles</option>
-              <option value="roles">Roles</option>
-              <option value="pays">Pays</option>
-              <option value="galletas">Galletas</option>
-            </select>
-          </label>
-
-          <label>Imagen (desde assets)
-            <select id="pImagePath">
-              <option value="">Selecciona una categoría primero</option>
-            </select>
-            <img id="pImagePreview" class="admin-preview" alt="Vista previa"/>
-          </label>
-
-          <label class="full">Descripción (opcional)
-            <textarea id="pDesc" placeholder="Describe el producto (ingredientes, porciones, etc.)"></textarea>
-          </label>
-
-          <label>Activo
-            <select id="pActive">
-              <option value="true">Sí</option>
-              <option value="false">No</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="actions">
-          <button class="btn primary" id="saveProduct">Guardar producto</button>
-        </div>
-      <div style="height:18px"></div>
-
-      <div class="section-head">
-        <h2>Productos (vista rápida)</h2>
-        <div class="filters">
-          <button class="btn ghost" id="refreshProducts">Actualizar</button>
-        </div>
-      </div>
-      <div id="adminProducts" class="grid"></div>
     </div>
+
+    <!-- LOGIN -->
+    <section id="loginBox" class="card admin-card">
+      <h3 style="margin:0 0 8px;">Iniciar sesión</h3>
+      <p class="muted" style="margin:0 0 14px;">Solo usuarios autorizados pueden editar productos.</p>
+      <button id="loginGoogle" class="btn primary" type="button">Entrar con Google</button>
+      <p class="muted" style="margin:12px 0 0; font-size:13px;">
+        Si te sale un error de dominios autorizados, hay que agregar tu dominio en Firebase (te digo cómo).
+      </p>
+    </section>
+
+    <!-- ADMIN PANEL -->
+    <section id="adminPanel" style="display:none;">
+      <div class="admin-grid">
+
+        <!-- FORM -->
+        <div class="card admin-card">
+          <h3 style="margin:0 0 10px;">Agregar producto</h3>
+
+          <div class="admin-row">
+            <label>Nombre
+              <input id="pName" type="text" placeholder="Ej. Pay de oreo con nutella" />
+            </label>
+
+            <label>Precio
+              <input id="pPrice" type="number" placeholder="Ej. 300" />
+            </label>
+
+            <label>Categoría
+              <input id="pCategory" type="text" placeholder="Ej. pays / pasteles / galletas" />
+            </label>
+
+            <label>Descripción
+              <textarea id="pDesc" placeholder="Ej. Pay de oreo 20 cm..."></textarea>
+            </label>
+
+            <label>Imagen (JPG/PNG)
+              <input id="pImage" type="file" accept="image/*" />
+            </label>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button id="saveProduct" class="btn primary" type="button">Guardar producto</button>
+              <button id="resetForm" class="btn ghost" type="button">Limpiar</button>
+            </div>
+
+            <p id="status" class="muted" style="margin:10px 0 0;"></p>
+          </div>
+        </div>
+
+        <!-- PREVIEW + LIST -->
+        <div>
+          <div class="preview">
+            <strong>Vista previa</strong>
+            <p class="muted" style="margin:6px 0 10px;">Así se verá la imagen en tu catálogo.</p>
+            <img id="previewImg" alt="Vista previa" style="display:none;" />
+          </div>
+
+          <div class="card admin-card" style="margin-top:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <h3 style="margin:0;">Productos</h3>
+              <button id="refreshList" class="btn ghost" type="button">Actualizar</button>
+            </div>
+            <div id="productsList" class="list"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
   </main>
 
   <script type="module" src="./admin.js"></script>
