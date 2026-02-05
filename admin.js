@@ -61,12 +61,13 @@ const userChip = $("userChip");
 
 /** Solo tú (opcional): pon tu correo aquí */
 const ALLOWED_EMAILS = [
-  // "tucorreo@gmail.com",
+  "osvillat@gmail.com",
+  "calderamoralesmarisol@gmail.com"
 ];
 
 function isAllowedUser(user) {
   if (!user) return false;
-  if (!ALLOWED_EMAILS.length) return true; // si no pones correos, cualquiera con login entra
+  if (!ALLOWED_EMAILS.length) return true; 
   return ALLOWED_EMAILS.includes(user.email);
 }
 
@@ -111,6 +112,11 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 });
+catch (err) {
+  console.error("LOGIN ERROR:", err);
+  alert("No se pudo iniciar sesión. Revisa consola.\n\n" + (err?.code || "") + " " + (err?.message || ""));
+}
+
 
 /** =========================
  *  Form Elements
@@ -203,7 +209,7 @@ async function saveProduct() {
       category,
       description,
       imagePath: downloadURL, // Usaremos URL directa para evitar rutas raras en Vercel/GH
-      storagePath,            // por si luego quieres borrar el archivo
+      storagePath,            
       createdAt: serverTimestamp(),
     });
 
