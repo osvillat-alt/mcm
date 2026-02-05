@@ -1,17 +1,44 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>MCM Repostería</title>
-  <link rel="stylesheet" href="./styles.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCM Repostería | Pasteles Personalizados</title>
+  <meta name="description"
+    content="MCM Repostería: Pasteles personalizados, postres y repostería fina bajo pedido. Elige tu diseño, sabor y relleno ideal. ¡Pide por WhatsApp!">
+
+  <!-- Security: Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self'; 
+    script-src 'self' https://www.gstatic.com https://apis.google.com; 
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+    font-src 'self' https://fonts.gstatic.com; 
+    img-src 'self' data: https://firebasestorage.googleapis.com; 
+    connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MCM Repostería | Pasteles Personalizados">
+  <meta property="og:description"
+    content="Pasteles únicos y deliciosos. Personaliza tu diseño, sabor y relleno. ¡Haz tu pedido ahora!">
+  <meta property="og:image" content="./assets/logo.png">
+
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <header class="topbar" id="home">
     <div class="container topbar-inner">
       <a class="brand" href="#home" aria-label="MCM Repostería">
-        <img src="./assets/logo.png" alt="MCM Repostería" class="brand-logo"/>
+        <img src="./assets/logo.png" alt="MCM Repostería" class="brand-logo" />
       </a>
 
       <nav class="nav" aria-label="Navegación">
@@ -47,11 +74,7 @@
         <div class="card hero-card">
           <h3>Promos / Avisos</h3>
 
-          <img
-            src="./assets/bienvenida.png"
-            alt="Bienvenidos a MCM Repostería"
-            class="promo-img"
-          />
+          <img src="./assets/bienvenida.png" alt="Bienvenidos a MCM Repostería" class="promo-img" />
 
           <p id="promoText">Explora nuestro catálogo y personaliza tu pastel ideal</p>
         </div>
@@ -65,7 +88,7 @@
           <h2>Productos</h2>
           <div class="filters">
             <select id="categoryFilter" aria-label="Filtrar por categoría"></select>
-            <input id="searchInput" type="search" placeholder="Buscar producto..." aria-label="Buscar producto"/>
+            <input id="searchInput" type="search" placeholder="Buscar producto..." aria-label="Buscar producto" />
           </div>
         </div>
 
@@ -135,7 +158,7 @@
             </label>
 
             <label class="full">Fruta (si aplica) / Otro relleno
-              <input id="detalleFruta" type="text" placeholder="Ej. fresa, mango, durazno..."/>
+              <input id="detalleFruta" type="text" placeholder="Ej. fresa, mango, durazno..." />
             </label>
 
             <label class="full">
@@ -145,11 +168,12 @@
 
             <label class="full">
               Imagen de referencia (link)
-              <input id="imagenReferencia" type="url" placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest"/>
+              <input id="imagenReferencia" type="url"
+                placeholder="Ej. enlace de WhatsApp, Drive, Instagram o Pinterest" />
             </label>
 
             <label class="full">Texto en fondant / Texto en chocolate
-              <input id="fraseFondant" type="text" placeholder='Ej. "Feliz cumpleaños"'/>
+              <input id="fraseFondant" type="text" placeholder='Ej. "Feliz cumpleaños"' />
             </label>
 
             <label>Fecha de entrega
@@ -161,11 +185,11 @@
             </label>
 
             <label>Nombre
-              <input id="nombreCliente" type="text" placeholder="Tu nombre"/>
+              <input id="nombreCliente" type="text" placeholder="Tu nombre" />
             </label>
 
             <label>Teléfono
-              <input id="telefonoCliente" type="tel" placeholder="Tu teléfono"/>
+              <input id="telefonoCliente" type="tel" placeholder="Tu teléfono" />
             </label>
 
             <label class="full">Comentarios
@@ -263,4 +287,5 @@
 
   <script type="module" src="./app.js"></script>
 </body>
+
 </html>
