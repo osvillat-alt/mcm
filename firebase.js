@@ -4,7 +4,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDf7l23Q9Tz0e0QupzkUlnMQtSHDvs14QA",
+  apiKey: "AIzaSyDf7l23Q9tz0eOQupzkUlnMQtSHDvs14QA",
   authDomain: "mcm-reposteria.firebaseapp.com",
   databaseURL: "https://mcm-reposteria-default-rtdb.firebaseio.com",
   projectId: "mcm-reposteria",
