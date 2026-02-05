@@ -68,7 +68,7 @@ function updateCartBadge() {
   cartCountEl.textContent = String(count);
 }
 
-function updateCartHeight(){
+function updateCartHeight() {
   // crecimiento según cantidad total (sumando qty)
   const count = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
 
@@ -271,7 +271,7 @@ function renderProducts(list) {
 
   if (!list.length) {
     productsGrid.innerHTML = `
-      <div class="card" style="padding:16px; grid-column: 1 / -1;">
+      <div class="card reveal" style="padding:16px; grid-column: 1 / -1;">
         <strong>Aún no hay productos.</strong>
         <p class="muted" style="margin:8px 0 0;">Agrega productos desde <a href="./admin.html"><u>admin.html</u></a>.</p>
       </div>
@@ -280,14 +280,17 @@ function renderProducts(list) {
   }
 
   productsGrid.innerHTML = list
-    .map((p) => {
+    .map((p, i) => {
       const img = p.imagePath ? `./${p.imagePath}` : "";
       const price = (p.price ?? p.priceFrom ?? "");
       const priceText = price !== "" ? `$${price}` : "";
       const safeName = escapeHtml(p.name || "Producto");
 
+      // Stagger animation delay based on index
+      const delay = i * 100;
+
       return `
-        <article class="card product">
+        <article class="card product reveal" style="animation-delay: ${delay}ms">
           <div class="media">
             ${img ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">` : ""}
           </div>
@@ -306,6 +309,9 @@ function renderProducts(list) {
       `;
     })
     .join("");
+
+  // Re-observe new elements
+  observeReveal();
 }
 
 function applyFilters() {
@@ -316,7 +322,7 @@ function applyFilters() {
     const okCat = cat === "all" ? true : p.category === cat;
     const okTerm = term
       ? (String(p.name || "").toLowerCase().includes(term) ||
-         String(p.description || "").toLowerCase().includes(term))
+        String(p.description || "").toLowerCase().includes(term))
       : true;
 
     return okCat && okTerm;
@@ -325,14 +331,36 @@ function applyFilters() {
   renderProducts(filtered);
 }
 
+function renderSkeleton() {
+  if (!productsGrid) return;
+  // Render 6 skeleton cards
+  productsGrid.innerHTML = Array(6).fill(0).map(() => `
+    <article class="card product">
+      <div class="media skeleton"></div>
+      <div class="body">
+        <div class="skeleton" style="height:20px; width:70%; margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:16px; width:40%; margin-bottom:12px;"></div>
+        <div class="skeleton" style="height:40px; width:100%;"></div>
+        <div style="margin-top:auto; display:flex; gap:10px;">
+           <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
+           <div class="skeleton" style="height:36px; flex:1; border-radius:999px;"></div>
+        </div>
+      </div>
+    </article>
+  `).join("");
+}
+
 async function loadProducts() {
   if (!productsGrid) return;
+
+  renderSkeleton(); // Show skeleton immediately
 
   try {
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
     allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (e) {
+    console.warn("Firestore error, falling back to basic fetch", e);
     const snap = await getDocs(collection(db, "products"));
     allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
@@ -346,6 +374,25 @@ async function loadProducts() {
   }
 
   applyFilters();
+}
+
+/** =========================
+ *  Animations (Scroll Reveal)
+ *  ========================= */
+function observeReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = "running";
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => {
+    el.style.animationPlayState = "paused"; // Pause initially
+    observer.observe(el);
+  });
 }
 
 /** =========================
@@ -443,5 +490,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCartUI();
   setupCakeWhatsApp();
   setupProductActions();
+
+  // Initialize animations for static content
+  document.querySelectorAll('.hero, .section-head, .form-wrap, .about-text').forEach(el => el.classList.add('reveal'));
+  observeReveal();
+
   loadProducts();
 });
