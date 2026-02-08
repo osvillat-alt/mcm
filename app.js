@@ -93,7 +93,7 @@ function closeCart() {
   if (cartDrawer) cartDrawer.setAttribute("aria-hidden", "true");
 }
 
-function addToCart(product) {
+function addToCart(product, clickedElement = null) {
   const id = product.id;
   const existing = cart.find((x) => x.id === id);
 
@@ -111,6 +111,67 @@ function addToCart(product) {
 
   saveCart();
   renderCart();
+
+  // Fly-to-cart animation
+  if (clickedElement && openCartBtn) {
+    animateFlyToCart(clickedElement, product);
+  }
+}
+
+/**
+ * Animate product image flying to cart
+ */
+function animateFlyToCart(clickedElement, product) {
+  // Find the product card and its image
+  const card = clickedElement.closest('.product');
+  if (!card) return;
+
+  const img = card.querySelector('.media img');
+  if (!img) return;
+
+  // Get positions
+  const imgRect = img.getBoundingClientRect();
+  const cartRect = openCartBtn.getBoundingClientRect();
+
+  // Create clone
+  const clone = document.createElement('img');
+  clone.src = img.src;
+  clone.className = 'fly-to-cart';
+  clone.style.width = imgRect.width + 'px';
+  clone.style.height = imgRect.height + 'px';
+  clone.style.left = imgRect.left + 'px';
+  clone.style.top = imgRect.top + 'px';
+  clone.style.objectFit = 'cover';
+
+  // Calculate trajectory
+  const deltaX = cartRect.left + cartRect.width / 2 - imgRect.left - imgRect.width / 2;
+  const deltaY = cartRect.top + cartRect.height / 2 - imgRect.top - imgRect.height / 2;
+
+  // Set CSS variables for animation
+  clone.style.setProperty('--fly-x', `${deltaX}px`);
+  clone.style.setProperty('--fly-y', `${deltaY}px`);
+  clone.style.setProperty('--fly-x-mid', `${deltaX * 0.6}px`);
+  clone.style.setProperty('--fly-y-mid', `${deltaY * 0.3 - 60}px`); // Arc up first
+
+  document.body.appendChild(clone);
+
+  // Trigger cart button glow
+  openCartBtn.classList.add('glow');
+
+  // Trigger badge bounce after delay
+  setTimeout(() => {
+    if (cartCountEl) {
+      cartCountEl.classList.remove('bounce');
+      void cartCountEl.offsetWidth; // Force reflow
+      cartCountEl.classList.add('bounce');
+    }
+  }, 400);
+
+  // Remove clone after animation
+  clone.addEventListener('animationend', () => {
+    clone.remove();
+    openCartBtn.classList.remove('glow');
+  });
 }
 
 function removeFromCart(id) {
@@ -484,8 +545,7 @@ function setupProductActions() {
     }
 
     if (action === "add") {
-      addToCart(product);
-      openCart();
+      addToCart(product, btn);
     }
   });
 }
