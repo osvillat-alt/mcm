@@ -317,10 +317,10 @@ label {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   align-items: stretch;
-  /* hace que las cards llenen alto disponible */
+  
 }
 
-/* Card producto (misma altura y botones alineados) */
+
 .product {
   display: flex;
   flex-direction: column;
@@ -693,7 +693,7 @@ body.cart-open .cart-drawer {
     inset 0 0 60px rgba(0, 0, 0, .4);
 }
 
-/* Warm glow animation for oven */
+
 @keyframes ovenGlow {
 
   0%,
@@ -718,7 +718,7 @@ body.cart-open .cart-drawer {
   padding: 14px 16px 14px 70px;
 }
 
-/* Timer/dial decoration */
+
 .cart-head::before {
   content: '';
   position: absolute;
@@ -931,7 +931,7 @@ body.cart-open .cart-drawer {
   .product .body {
     padding: 12px;
     min-height: 155px;
-    /* un poco más compacto */
+    
   }
 
   .product h3 {
@@ -939,9 +939,13 @@ body.cart-open .cart-drawer {
   }
 
   .product p {
-    font-size: 12px;
-    -webkit-line-clamp: 2;
-    min-height: calc(1.45em * 2);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  display: block;
+  min-height: auto;
+
   }
 
   .product-actions {
