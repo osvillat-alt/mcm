@@ -1,10 +1,15 @@
-import { db } from "./firebase_config.js";
+import { db, storage } from "./firebase_config.js";
 import {
   collection,
   getDocs,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 /** =========================
  *  Config
@@ -523,6 +528,157 @@ function setupCakeWhatsApp() {
 }
 
 /** =========================
+ *  Carga de Imagen de Referencia
+ *  ========================= */
+function setupCakeImageUpload() {
+  const uploadArea = $("uploadArea");
+  const fileInput = $("fileInput");
+  const uploadPrompt = $("uploadPrompt");
+  const uploadLoading = $("uploadLoading");
+  const uploadLoadingText = $("uploadLoadingText");
+  const progressBar = $("progressBar");
+  const uploadPreviewContainer = $("uploadPreviewContainer");
+  const uploadPreview = $("uploadPreview");
+  const btnRemoveImage = $("btnRemoveImage");
+  const imagenReferencia = $("imagenReferencia");
+  const btnToggleLink = $("btnToggleLink");
+  const linkInputWrapper = $("linkInputWrapper");
+  const imagenReferenciaManual = $("imagenReferenciaManual");
+
+  if (!uploadArea || !fileInput || !imagenReferencia) return;
+
+  function resetUploadUI() {
+    fileInput.value = "";
+    imagenReferencia.value = "";
+    if (imagenReferenciaManual) imagenReferenciaManual.value = "";
+    uploadLoading.style.display = "none";
+    uploadPreviewContainer.style.display = "none";
+    uploadPrompt.style.display = "flex";
+    progressBar.style.width = "0%";
+  }
+
+  // Trigger file dialog
+  uploadArea.addEventListener("click", (e) => {
+    if (e.target.closest("#btnRemoveImage") || e.target.closest(".preview-actions")) return;
+    if (uploadPreviewContainer.style.display !== "flex" && uploadLoading.style.display !== "flex") {
+      fileInput.click();
+    }
+  });
+
+  // Drag and Drop
+  ["dragenter", "dragover"].forEach((eventName) => {
+    uploadArea.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.add("drag-over");
+    }, false);
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    uploadArea.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.remove("drag-over");
+    }, false);
+  });
+
+  uploadArea.addEventListener("drop", (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files[0]) {
+      handleFile(files[0]);
+    }
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files && fileInput.files[0]) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecciona únicamente archivos de imagen (JPG, PNG, etc.).");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("La imagen es demasiado grande. El tamaño máximo permitido es de 5MB.");
+      return;
+    }
+
+    uploadPrompt.style.display = "none";
+    uploadPreviewContainer.style.display = "none";
+    uploadLoading.style.display = "flex";
+    progressBar.style.width = "0%";
+    uploadLoadingText.textContent = "Subiendo imagen...";
+
+    const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+    const storagePath = `referencias/${Date.now()}_${cleanName}`;
+    const storageRef = ref(storage, storagePath);
+
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        progressBar.style.width = `${progress}%`;
+        uploadLoadingText.textContent = `Subiendo: ${Math.round(progress)}%`;
+      },
+      (error) => {
+        console.error("Error al subir a Firebase Storage:", error);
+        alert(`Error al subir la imagen: ${error.message}\nPor favor, intenta pegar el enlace manualmente.`);
+        resetUploadUI();
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          imagenReferencia.value = downloadURL;
+          uploadPreview.src = downloadURL;
+          uploadLoading.style.display = "none";
+          uploadPreviewContainer.style.display = "flex";
+        } catch (err) {
+          console.error("Error obteniendo URL de descarga:", err);
+          alert("Error al obtener el enlace de la imagen subida.");
+          resetUploadUI();
+        }
+      }
+    );
+  }
+
+  if (btnRemoveImage) {
+    btnRemoveImage.addEventListener("click", (e) => {
+      e.stopPropagation();
+      resetUploadUI();
+    });
+  }
+
+  if (btnToggleLink && linkInputWrapper) {
+    btnToggleLink.addEventListener("click", () => {
+      const isHidden = linkInputWrapper.style.display === "none";
+      if (isHidden) {
+        linkInputWrapper.style.display = "block";
+        btnToggleLink.textContent = "O prefiere subir una foto desde su galería";
+        resetUploadUI();
+      } else {
+        linkInputWrapper.style.display = "none";
+        btnToggleLink.textContent = "O prefiere pegar un enlace de internet";
+        if (imagenReferenciaManual) imagenReferenciaManual.value = "";
+        imagenReferencia.value = "";
+      }
+    });
+  }
+
+  if (imagenReferenciaManual) {
+    imagenReferenciaManual.addEventListener("input", () => {
+      imagenReferencia.value = imagenReferenciaManual.value.trim();
+    });
+  }
+}
+
+/** =========================
  *  Acciones en productos
  *  ========================= */
 function setupProductActions() {
@@ -559,6 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupCartUI();
   setupCakeWhatsApp();
+  setupCakeImageUpload();
   setupProductActions();
 
   document.querySelectorAll(".hero, .section-head, .form-wrap, .about-text")
