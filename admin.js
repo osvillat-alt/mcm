@@ -1,4 +1,4 @@
-import { auth, db } from "./firebase_config.js";
+import { auth, db, storage } from "./firebase_config.js";
 
 import {
   GoogleAuthProvider,
@@ -13,8 +13,16 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
-  doc
+  doc,
+  orderBy,
+  query
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 /** =========================
  *  CONFIG
@@ -25,96 +33,10 @@ const ALLOWED_EMAILS = [
 ];
 
 /** =========================
- *  ELEMENTS
+ *  HELPERS
  *  ========================= */
 const $ = (id) => document.getElementById(id);
 
-const loginBox = $("loginBox");
-const adminPanel = $("adminPanel");
-const loginBtn = $("loginGoogle");
-const logoutBtn = $("logoutBtn");
-const userChip = $("userChip");
-
-// Admin form elements
-const saveBtn = $("saveProduct");
-const resetBtn = $("resetForm");
-const statusEl = $("status");
-const productsListEl = $("productsList");
-
-// Form inputs
-const pName = $("pName");
-const pPrice = $("pPrice");
-const pCategory = $("pCategory");
-const pDesc = $("pDesc");
-const pImage = $("pImage");
-const previewImg = $("previewImg");
-
-/** =========================
- *  AUTH
- *  ========================= */
-const provider = new GoogleAuthProvider();
-
-async function login() {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (err) {
-    console.error("Login error:", err);
-    alert("Error al iniciar sesión: " + err.message);
-  }
-}
-
-async function logout() {
-  try {
-    await signOut(auth);
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-if (loginBtn) loginBtn.addEventListener("click", login);
-if (logoutBtn) logoutBtn.addEventListener("click", logout);
-
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    showLogin();
-    return;
-  }
-
-  // Verificar email autorizado
-  if (!ALLOWED_EMAILS.includes(user.email)) {
-    alert(`El correo ${user.email} no está autorizado.`);
-    signOut(auth);
-    return;
-  }
-
-  // Usuario autorizado
-  showAdmin(user);
-});
-
-function showLogin() {
-  if (loginBox) loginBox.style.display = "block";
-  if (adminPanel) adminPanel.style.display = "none";
-  if (userChip) userChip.style.display = "none";
-  if (logoutBtn) logoutBtn.style.display = "none";
-}
-
-function showAdmin(user) {
-  if (loginBox) loginBox.style.display = "none";
-  if (adminPanel) adminPanel.style.display = "block";
-
-  if (userChip) {
-    userChip.textContent = user.email;
-    userChip.style.display = "inline-flex";
-  }
-  if (logoutBtn) logoutBtn.style.display = "inline-flex";
-
-  loadAdminProducts();
-  loadAssets();
-}
-
-/** =========================
- *  PRODUCTS Logic
- *  ========================= */
 function escapeHtml(str = "") {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -124,238 +46,396 @@ function escapeHtml(str = "") {
     .replaceAll("'", "&#039;");
 }
 
-/* Upload simulation (since we don't have Storage setup yet)
-   We will read the file as DataURL to preview it, 
-   but for the DB we'll just ask for a URL or save the filename 
-   (Note: Real file upload requires Firebase Storage) */
-let currentImageBase64 = "";
-
-if (pImage) {
-  pImage.addEventListener("change", () => {
-    const file = pImage.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      currentImageBase64 = e.target.result;
-      if (previewImg) {
-        previewImg.src = currentImageBase64;
-        previewImg.style.display = "block";
-      }
-    };
-    reader.readAsDataURL(file);
-  });
+/** Show a brief toast message instead of alert() */
+let toastTimer = null;
+function toast(msg, type = "success") {
+  const el = $("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ""; }, 3000);
 }
 
-if (saveBtn) {
-  saveBtn.addEventListener("click", async () => {
-    const name = pName?.value?.trim();
-    if (!name) return alert("El nombre es obligatorio");
+/** =========================
+ *  AUTH
+ *  ========================= */
+const provider = new GoogleAuthProvider();
 
-    statusEl.textContent = "Guardando...";
+if ($("loginGoogle")) $("loginGoogle").addEventListener("click", () => signInWithPopup(auth, provider).catch(e => toast(e.message, "error")));
+if ($("logoutBtn"))  $("logoutBtn").addEventListener("click",  () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) { showLogin(); return; }
+  if (!ALLOWED_EMAILS.includes(user.email)) {
+    toast(`${user.email} no está autorizado.`, "error");
+    signOut(auth);
+    return;
+  }
+  showAdmin(user);
+});
+
+function showLogin() {
+  $("loginBox").style.display = "block";
+  $("adminPanel").style.display = "none";
+  if ($("userChip"))  $("userChip").style.display  = "none";
+  if ($("logoutBtn")) $("logoutBtn").style.display  = "none";
+  if ($("fab"))       $("fab").style.display        = "none";
+}
+
+function showAdmin(user) {
+  $("loginBox").style.display   = "none";
+  $("adminPanel").style.display = "block";
+  if ($("fab")) $("fab").style.display = "flex";
+
+  if ($("userChip")) {
+    $("userChip").textContent = user.email;
+    $("userChip").style.display = "inline-flex";
+  }
+  if ($("logoutBtn")) $("logoutBtn").style.display = "inline-flex";
+
+  loadAdminProducts();
+}
+
+/** =========================
+ *  IMAGE UPLOAD (Firebase Storage)
+ *  ========================= */
+function setupImageUpload() {
+  const uploadArea    = $("adminUploadArea");
+  const fileInput     = $("adminFileInput");
+  const prompt        = $("adminUploadPrompt");
+  const loading       = $("adminUploadLoading");
+  const loadingText   = $("adminUploadLoadingText");
+  const progressBar   = $("adminProgressBar");
+  const previewCont   = $("adminUploadPreviewContainer");
+  const previewImg    = $("adminUploadPreview");
+  const removeBtn     = $("adminBtnRemoveImage");
+  const imageUrlInput = $("adminImageUrl");
+
+  if (!uploadArea) return;
+
+  window.adminResetImageUI = function () {
+    fileInput.value = "";
+    imageUrlInput.value = "";
+    previewImg.src = "";
+    loading.style.display = "none";
+    previewCont.style.display = "none";
+    prompt.style.display = "flex";
+    progressBar.style.width = "0%";
+  };
+
+  /** Show an existing image URL in preview (for edit mode) */
+  window.adminSetImagePreview = function (url) {
+    if (!url) return;
+    imageUrlInput.value = url;
+    previewImg.src = url;
+    prompt.style.display = "none";
+    loading.style.display = "none";
+    previewCont.style.display = "flex";
+  };
+
+  uploadArea.addEventListener("click", (e) => {
+    if (e.target.closest("#adminBtnRemoveImage")) return;
+    if (previewCont.style.display === "flex") return;
+    if (loading.style.display === "flex") return;
+    fileInput.click();
+  });
+
+  // Drag-and-drop
+  ["dragenter", "dragover"].forEach(ev => uploadArea.addEventListener(ev, e => { e.preventDefault(); uploadArea.classList.add("drag-over"); }, false));
+  ["dragleave", "drop"].forEach(ev =>    uploadArea.addEventListener(ev, e => { e.preventDefault(); uploadArea.classList.remove("drag-over"); }, false));
+  uploadArea.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+  fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+  function handleFile(file) {
+    if (!file.type.startsWith("image/")) { toast("Selecciona un archivo de imagen.", "error"); return; }
+    if (file.size > 5 * 1024 * 1024)    { toast("Máximo 5 MB por imagen.", "error"); return; }
+
+    prompt.style.display = "none";
+    previewCont.style.display = "none";
+    loading.style.display = "flex";
+    progressBar.style.width = "0%";
+
+    const cleanName  = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+    const storageRef = ref(storage, `productos/${Date.now()}_${cleanName}`);
+    const task       = uploadBytesResumable(storageRef, file);
+
+    task.on("state_changed",
+      snap => {
+        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
+        progressBar.style.width = `${pct}%`;
+        loadingText.textContent = `Subiendo: ${Math.round(pct)}%`;
+      },
+      err => { toast("Error al subir: " + err.message, "error"); window.adminResetImageUI(); },
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          imageUrlInput.value = url;
+          previewImg.src = url;
+          loading.style.display = "none";
+          previewCont.style.display = "flex";
+          toast("Imagen cargada ✓");
+        } catch (e) {
+          toast("Error al obtener URL.", "error");
+          window.adminResetImageUI();
+        }
+      }
+    );
+  }
+
+  if (removeBtn) removeBtn.addEventListener("click", e => { e.stopPropagation(); window.adminResetImageUI(); });
+}
+
+/** =========================
+ *  FORM  (create + edit)
+ *  ========================= */
+let editingId = null; // null = new product, string = product id being edited
+
+function setupForm() {
+  const categorySelect = $("pCategory");
+  const customCatLabel = $("customCatLabel");
+  const saveBtn   = $("saveProduct");
+  const cancelBtn = $("cancelEdit");
+  const fab       = $("fab");
+
+  // Show/hide custom category input
+  if (categorySelect) {
+    categorySelect.addEventListener("change", () => {
+      if (customCatLabel) customCatLabel.style.display = categorySelect.value === "otro" ? "block" : "none";
+    });
+  }
+
+  // FAB scrolls to top and focuses name field
+  if (fab) {
+    fab.addEventListener("click", () => {
+      resetForm();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => $("pName")?.focus(), 400);
+    });
+  }
+
+  // Cancel editing
+  if (cancelBtn) cancelBtn.addEventListener("click", resetForm);
+
+  // Refresh list button
+  const refreshBtn = $("refreshList");
+  if (refreshBtn) refreshBtn.addEventListener("click", loadAdminProducts);
+
+  if (!saveBtn) return;
+
+  saveBtn.addEventListener("click", async () => {
+    const name = $("pName")?.value?.trim();
+    if (!name) { toast("El nombre es obligatorio.", "error"); return; }
+
+    const rawCat   = categorySelect?.value || "";
+    const category = rawCat === "otro"
+      ? ($("pCategoryCustom")?.value?.trim() || "otro")
+      : rawCat;
+
+    const imageUrl = $("adminImageUrl")?.value || "";
+    const price    = $("pPrice")?.value || "";
+    const desc     = $("pDesc")?.value?.trim() || "";
+
     saveBtn.disabled = true;
+    saveBtn.textContent = "Guardando…";
 
     try {
-      // Determine Image Path: Asset Select OR Uploaded Base64
-      let finalImagePath = currentImageBase64 || "";
-      const assetSelect = document.getElementById("pAssetSelect");
-
-      if (assetSelect && assetSelect.value) {
-        finalImagePath = assetSelect.value;
-      }
-
-      const product = {
-        name,
-        price: pPrice?.value || "",
-        category: pCategory?.value || "",
-        description: pDesc?.value || "",
-        imagePath: finalImagePath,
-        active: true, // Manually created products default to active/visible
-        createdAt: Date.now()
-      };
-
-      await addDoc(collection(db, "products"), product);
-
-      alert("Producto guardado correctamente");
-      if (resetBtn) resetBtn.click();
-      loadAdminProducts();
-
-    } catch (e) {
-      console.error(e);
-      alert("Error guardando: " + e.message);
-    } finally {
-      statusEl.textContent = "";
-      saveBtn.disabled = false;
-    }
-  });
-}
-
-if (resetBtn) {
-  resetBtn.addEventListener("click", () => {
-    pName.value = "";
-    pPrice.value = "";
-    pCategory.value = "";
-    pDesc.value = "";
-    pImage.value = "";
-    currentImageBase64 = "";
-    if (previewImg) previewImg.style.display = "none";
-  });
-}
-
-// Load manifest assets into dropdown
-async function loadAssets() {
-  try {
-    const resp = await fetch('assets/manifest.json');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    const select = document.getElementById("pAssetSelect");
-    if (!select) return;
-
-    // Clear existing (except default)
-    select.innerHTML = '<option value="">Seleccionar de mis Assets...</option>';
-
-    for (const [category, paths] of Object.entries(data)) {
-      const optgroup = document.createElement("optgroup");
-      optgroup.label = category;
-      paths.forEach(path => {
-        const option = document.createElement("option");
-        // Show filename only, but value is full path
-        option.text = path.split('/').pop();
-        option.value = path;
-        optgroup.appendChild(option);
-      });
-      select.appendChild(optgroup);
-    }
-
-    // Preview Logic for Dropdown
-    select.addEventListener('change', (e) => {
-      const val = e.target.value;
-      const preview = document.getElementById("previewImg");
-      if (val) {
-        currentImageBase64 = ""; // Clear uploaded file ref
-        if (preview) {
-          preview.src = val;
-          preview.style.display = "block";
-        }
-        // Clear file input
-        if (pImage) pImage.value = "";
-      }
-    });
-
-  } catch (e) { console.error("Could not load assets manifest", e); }
-}
-
-async function loadAdminProducts() {
-  if (!productsListEl) return;
-  productsListEl.innerHTML = "<p class='muted'>Cargando...</p>";
-
-  try {
-    const snap = await getDocs(collection(db, "products"));
-    const products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    if (products.length === 0) {
-      productsListEl.innerHTML = "<p class='muted'>No hay productos aún.</p>";
-      return;
-    }
-
-    productsListEl.innerHTML = products.map(p => {
-      // Check if image is Base64 (starts with data:) or a path
-      let imgSrc = "";
-      if (p.imagePath) {
-        // Fix for GitHub Pages: remove ../ because admin.html is at root too
-        imgSrc = p.imagePath.startsWith("data:") ? p.imagePath : p.imagePath;
-      }
-
-      const isDraft = p.active === false;
-      const statusLabel = isDraft ? '<span style="color:orange; font-weight:bold;">(Borrador)</span>' : '<span style="color:green; font-weight:bold;">(Visible)</span>';
-      const toggleBtnText = isDraft ? 'Publicar' : 'Ocultar';
-      const toggleBtnStyle = isDraft ? 'background: #28a745; color: white;' : 'background: #6c757d; color: white;';
-
-      return `
-        <div class="item" style="${isDraft ? 'opacity: 0.7; background: #fff5f5;' : ''}">
-          <img src="${imgSrc}" alt="img" onerror="this.style.background='#eee'">
-          <div style="flex:1; padding: 0 10px;">
-            <h4>${escapeHtml(p.name)} ${statusLabel}</h4>
-            <p>${escapeHtml(p.description)}</p>
-            <div class="price">$${p.price}</div>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:5px;">
-            <button class="btn" style="padding:6px 10px; font-size:12px; ${toggleBtnStyle}" 
-              onclick="toggleVisibility('${p.id}', ${p.active})">${toggleBtnText}</button>
-            <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="deleteProduct('${p.id}')">Borrar</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-  } catch (e) {
-    console.error(e);
-    productsListEl.innerHTML = "<p class='muted'>Error cargando productos.</p>";
-  }
-}
-
-window.deleteProduct = async (id) => {
-  if (!confirm("¿Seguro que quieres borrar este producto?")) return;
-  try {
-    await deleteDoc(doc(db, "products", id));
-    loadAdminProducts();
-  } catch (e) {
-    alert("Error borrando: " + e.message);
-  }
-};
-
-window.toggleVisibility = async (id, currentStatus) => {
-  try {
-    const docRef = doc(db, "products", id);
-    const newStatus = currentStatus === false ? true : false;
-
-    await updateDoc(docRef, { active: newStatus });
-    loadAdminProducts();
-  } catch (e) {
-    console.error(e);
-    alert("Error cambiando estado: " + e.message);
-  }
-};
-
-window.importFromManifest = async () => {
-  if (!confirm("Esto importará todos los productos del manifest.json. ¿Continuar?")) return;
-  const btn = document.getElementById("importBtn");
-  if (btn) btn.disabled = true;
-
-  try {
-    const resp = await fetch('assets/manifest.json');
-    if (!resp.ok) throw new Error("No se encontró assets/manifest.json");
-    const data = await resp.json();
-
-    let count = 0;
-
-    for (const [category, paths] of Object.entries(data)) {
-      for (const path of paths) {
-        // Formatting name: "assets/PastelDeQueso.png" -> "Pastel De Queso"
-        const basename = path.split('/').pop().split('.')[0];
-        // Insert space before capital letters
-        const name = basename.replace(/([A-Z])/g, ' $1').trim();
-
+      if (editingId) {
+        // UPDATE existing product
+        await updateDoc(doc(db, "products", editingId), {
+          name,
+          price,
+          category,
+          description: desc,
+          ...(imageUrl && { imagePath: imageUrl }) // only update image if one was (re)uploaded
+        });
+        toast("Producto actualizado ✓");
+      } else {
+        // CREATE new product
         await addDoc(collection(db, "products"), {
-          name: name,
-          category: category,
-          price: 0,
-          description: "Importado automáticamente",
-          imagePath: path,
-          active: false, // DRAFT MODE - Hidden by default
+          name,
+          price,
+          category,
+          description: desc,
+          imagePath: imageUrl,
+          active: true,
           createdAt: Date.now()
         });
-        count++;
+        toast("Producto guardado ✓");
       }
+
+      resetForm();
+      loadAdminProducts();
+    } catch (e) {
+      console.error(e);
+      toast("Error al guardar: " + e.message, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Guardar producto";
     }
+  });
+}
 
-    alert(`¡Importación lista! Se agregaron ${count} productos como 'Borrador'.`);
-    loadAdminProducts();
+function resetForm() {
+  editingId = null;
 
-  } catch (e) {
-    alert("Error importando: " + e.message);
-    console.error(e);
-  } finally {
-    if (btn) btn.disabled = false;
+  const fields = ["pName", "pPrice", "pDesc"];
+  fields.forEach(id => { const el = $(id); if (el) el.value = ""; });
+
+  const cat = $("pCategory");
+  if (cat) cat.value = "";
+
+  const customCatLabel = $("customCatLabel");
+  if (customCatLabel) customCatLabel.style.display = "none";
+
+  const customCat = $("pCategoryCustom");
+  if (customCat) customCat.value = "";
+
+  if (window.adminResetImageUI) window.adminResetImageUI();
+
+  const formTitle = $("formTitle");
+  if (formTitle) formTitle.textContent = "➕ Nuevo producto";
+
+  const cancelBtn = $("cancelEdit");
+  if (cancelBtn) cancelBtn.style.display = "none";
+}
+
+/** Load a product into the form for editing */
+function loadProductIntoForm(product) {
+  editingId = product.id;
+
+  $("pName").value  = product.name || "";
+  $("pPrice").value = product.price || "";
+  $("pDesc").value  = product.description || "";
+
+  const cat = $("pCategory");
+  const customCatLabel = $("customCatLabel");
+  if (cat) {
+    const knownCats = ["pasteles", "pays", "galletas", "roles", "postres"];
+    if (knownCats.includes(product.category)) {
+      cat.value = product.category;
+      if (customCatLabel) customCatLabel.style.display = "none";
+    } else if (product.category) {
+      cat.value = "otro";
+      if (customCatLabel) customCatLabel.style.display = "block";
+      const customCat = $("pCategoryCustom");
+      if (customCat) customCat.value = product.category;
+    }
   }
-};
+
+  if (product.imagePath && window.adminSetImagePreview) {
+    window.adminSetImagePreview(product.imagePath);
+  } else if (window.adminResetImageUI) {
+    window.adminResetImageUI();
+  }
+
+  const formTitle = $("formTitle");
+  if (formTitle) formTitle.textContent = `✏️ Editando: ${product.name}`;
+
+  const cancelBtn = $("cancelEdit");
+  if (cancelBtn) cancelBtn.style.display = "inline-flex";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/** =========================
+ *  PRODUCTS LIST
+ *  ========================= */
+let allAdminProducts = [];
+
+async function loadAdminProducts() {
+  const listEl = $("productsList");
+  if (!listEl) return;
+  listEl.innerHTML = `<p class="muted" style="padding:8px 0;">Cargando…</p>`;
+
+  try {
+    const q    = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    allAdminProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch {
+    // fallback without orderBy in case index not ready
+    const snap = await getDocs(collection(db, "products"));
+    allAdminProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  if (!allAdminProducts.length) {
+    listEl.innerHTML = `<p class="muted" style="padding:8px 0;">Aún no hay productos.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = allAdminProducts.map(p => {
+    const isDraft     = p.active === false;
+    const visLabel    = isDraft ? "Publicar" : "Ocultar";
+    const visClass    = isDraft ? "draft" : "visible";
+    const draftBadge  = isDraft ? `<span class="draft-badge">Borrador</span>` : "";
+    const img         = p.imagePath || "";
+    const price       = p.price ? `$${p.price}` : "";
+
+    return `
+      <div class="prod-item" data-id="${p.id}">
+        <img class="prod-thumb"
+             src="${escapeHtml(img)}"
+             alt="${escapeHtml(p.name)}"
+             loading="lazy"
+             onerror="this.style.background='#f0f0f0'; this.removeAttribute('src');" />
+        <div class="prod-info">
+          <h4>${escapeHtml(p.name)}${draftBadge}</h4>
+          <div class="prod-cat">${escapeHtml(p.category || "")}</div>
+          <div class="prod-price">${escapeHtml(price)}</div>
+          <div class="prod-actions">
+            <button class="btn-edit"       data-action="edit"   data-id="${p.id}">✏️ Editar</button>
+            <button class="btn-toggle-vis ${visClass}" data-action="toggle" data-id="${p.id}" data-active="${p.active}">${visLabel}</button>
+            <button class="btn-delete"     data-action="delete" data-id="${p.id}">🗑</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/** Delegate list button clicks */
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.getAttribute("data-action");
+  const id     = btn.getAttribute("data-id");
+
+  if (action === "edit") {
+    const product = allAdminProducts.find(p => p.id === id);
+    if (product) loadProductIntoForm(product);
+    return;
+  }
+
+  if (action === "toggle") {
+    const currentActive = btn.getAttribute("data-active");
+    const newActive = currentActive === "false" ? true : false;
+    try {
+      await updateDoc(doc(db, "products", id), { active: newActive });
+      toast(newActive ? "Producto publicado ✓" : "Producto ocultado");
+      loadAdminProducts();
+    } catch (err) {
+      toast("Error: " + err.message, "error");
+    }
+    return;
+  }
+
+  if (action === "delete") {
+    if (!confirm("¿Borrar este producto? Esta acción no se puede deshacer.")) return;
+    try {
+      await deleteDoc(doc(db, "products", id));
+      toast("Producto eliminado");
+      loadAdminProducts();
+    } catch (err) {
+      toast("Error: " + err.message, "error");
+    }
+  }
+});
+
+/** =========================
+ *  BOOT
+ *  ========================= */
+document.addEventListener("DOMContentLoaded", () => {
+  setupImageUpload();
+  setupForm();
+});
