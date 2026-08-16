@@ -8,7 +8,7 @@ const firebaseConfig = {
     authDomain: "mcm-reposteria.firebaseapp.com",
     databaseURL: "https://mcm-reposteria-default-rtdb.firebaseio.com",
     projectId: "mcm-reposteria",
-    storageBucket: "mcm-reposteria.appspot.com",
+    storageBucket: "mcm-reposteria.firebasestorage.app",
     messagingSenderId: "563376696410",
     appId: "1:563376696410:web:deb011d387a85fc7d8bc63",
     measurementId: "G-F6EJR7FKVC"
