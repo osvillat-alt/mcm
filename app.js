@@ -484,6 +484,12 @@ function buildCakeWhatsAppMessage() {
     ? `${fechaEntrega || "Sin fecha"} ${horaEntrega || "Sin hora"}`
     : "No especificada";
 
+  const imagenRef = get("imagenReferencia");
+  let imagenTxt = imagenRef || "-";
+  if (imagenRef === "[IMAGEN_LOCAL]") {
+    imagenTxt = "(Imagen seleccionada - favor de adjuntarla manualmente en WhatsApp)";
+  }
+
   return `🍰 *Pedido de pastel – MCM Repostería*
 
 Tamaño: ${get("tamano") || "-"}
@@ -494,7 +500,7 @@ Relleno(s): ${rellenos || "-"}
 
 Fruta / Otro: ${get("detalleFruta") || "-"}
 Diseño (papel comestible): ${get("detallesLogo") || "-"}
-Imagen de referencia: ${get("imagenReferencia") || "-"}
+Imagen de referencia: ${imagenTxt}
 Texto (fondant/chocolate): ${get("fraseFondant") || "-"}
 
 Entrega: ${entregaTxt}
@@ -608,41 +614,51 @@ function setupCakeImageUpload() {
       return;
     }
 
+    // Vista previa local inmediata
+    const localURL = URL.createObjectURL(file);
+    uploadPreview.src = localURL;
     uploadPrompt.style.display = "none";
-    uploadPreviewContainer.style.display = "none";
-    uploadLoading.style.display = "flex";
-    progressBar.style.width = "0%";
-    uploadLoadingText.textContent = "Subiendo imagen...";
+    uploadPreviewContainer.style.display = "flex";
+    uploadLoading.style.display = "none";
+    // ponytail: local fallback — si Firebase falla, el pedido igual llega con aviso de adjuntar manualmente
+    imagenReferencia.value = "[IMAGEN_LOCAL]";
 
+    // Subida en background con timeout de 20 s
     const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     const storagePath = `referencias/${Date.now()}_${cleanName}`;
     const storageRef = ref(storage, storagePath);
-
     const uploadTask = uploadBytesResumable(storageRef, file);
+
+    progressBar.style.width = "0%";
+
+    const timeoutId = setTimeout(() => {
+      uploadTask.cancel();
+      console.warn("Upload timeout: Firebase Storage no respondió en 20 s. Usando imagen local.");
+      // La vista previa ya está visible; imagenReferencia ya es [IMAGEN_LOCAL]
+    }, 20_000);
 
     uploadTask.on(
       "state_changed",
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         progressBar.style.width = `${progress}%`;
-        uploadLoadingText.textContent = `Subiendo: ${Math.round(progress)}%`;
       },
       (error) => {
+        clearTimeout(timeoutId);
+        if (error.code === "storage/canceled") return; // timeout ya manejado arriba
         console.error("Error al subir a Firebase Storage:", error);
-        alert(`Error al subir la imagen: ${error.message}\nPor favor, intenta pegar el enlace manualmente.`);
-        resetUploadUI();
+        // Vista previa local ya visible; WhatsApp avisará adjuntar manualmente
       },
       async () => {
+        clearTimeout(timeoutId);
         try {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           imagenReferencia.value = downloadURL;
           uploadPreview.src = downloadURL;
-          uploadLoading.style.display = "none";
-          uploadPreviewContainer.style.display = "flex";
+          URL.revokeObjectURL(localURL);
         } catch (err) {
           console.error("Error obteniendo URL de descarga:", err);
-          alert("Error al obtener el enlace de la imagen subida.");
-          resetUploadUI();
+          // imagenReferencia permanece [IMAGEN_LOCAL]
         }
       }
     );
