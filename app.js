@@ -642,12 +642,20 @@ function setupCakeImageUpload() {
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         progressBar.style.width = `${progress}%`;
+        if (uploadLoadingText) uploadLoadingText.textContent = `Subiendo: ${Math.round(progress)}%`;
       },
       (error) => {
         clearTimeout(timeoutId);
-        if (error.code === "storage/canceled") return; // timeout ya manejado arriba
-        console.error("Error al subir a Firebase Storage:", error);
-        // Vista previa local ya visible; WhatsApp avisará adjuntar manualmente
+        if (error.code === "storage/canceled") {
+          if (uploadLoadingText) uploadLoadingText.textContent = "⚠️ Timeout — imagen local guardada";
+          return;
+        }
+        console.error("Error al subir a Firebase Storage:", error.code, error.message);
+        // Mostrar el error real en la UI para diagnóstico
+        if (uploadLoadingText) {
+          uploadLoadingText.textContent = `❌ Error: ${error.code}`;
+          uploadLoading.style.display = "flex";
+        }
       },
       async () => {
         clearTimeout(timeoutId);
@@ -656,9 +664,10 @@ function setupCakeImageUpload() {
           imagenReferencia.value = downloadURL;
           uploadPreview.src = downloadURL;
           URL.revokeObjectURL(localURL);
+          if (uploadLoadingText) uploadLoadingText.textContent = "✅ Subida exitosa";
         } catch (err) {
           console.error("Error obteniendo URL de descarga:", err);
-          // imagenReferencia permanece [IMAGEN_LOCAL]
+          if (uploadLoadingText) uploadLoadingText.textContent = `❌ URL error: ${err.code}`;
         }
       }
     );
