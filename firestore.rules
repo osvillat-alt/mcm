@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isMCMAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['osvillat@gmail.com', 'calderamoralesmarisol@gmail.com'];
+    }
+
+    // Matches the existing public catalog and its Google-authenticated administration.
+    match /products/{product} {
+      allow read: if true;
+      allow write: if isMCMAdmin();
+    }
+
+    match /orderRequests/{requestId} {
+      function validRequest() {
+        let d = request.resource.data;
+        let fields = ['version', 'createdAt', 'tamano', 'saborPan', 'consistencia', 'betun',
+          'rellenos', 'detalleFruta', 'detallesLogo', 'imagenReferencia', 'fraseFondant',
+          'fechaEntrega', 'horaEntrega', 'nombreCliente', 'telefonoCliente', 'comentariosAdicionales'];
+        return d.keys().hasAll(fields) && d.keys().hasOnly(fields)
+          && d.version == 1 && d.createdAt == request.time
+          && d.tamano in ['16 cm', '18 cm', '20 cm', '22 cm']
+          && d.saborPan in ['Vainilla', 'Chocolate', 'Red velvet', 'Almendra', 'Zanahoria']
+          && d.consistencia in ['Seco', 'Tres leches', 'Húmedo']
+          && d.betun in ['Chantilly', 'Queso crema', 'Chocolate']
+          && d.rellenos is list && d.rellenos.size() <= 9
+          && d.rellenos.hasOnly(['Chantilly', 'Fruta', 'Chocolate', 'Almendra', 'Nuez',
+            'Fresas con crema', 'Nutella', 'Cajeta', 'Queso Philadelphia'])
+          && d.detalleFruta is string && d.detalleFruta.size() <= 1000
+          && d.detallesLogo is string && d.detallesLogo.size() <= 1000
+          && d.imagenReferencia is string && d.imagenReferencia.size() <= 1000
+          && d.fraseFondant is string && d.fraseFondant.size() <= 1000
+          && d.fechaEntrega is string && d.fechaEntrega.matches('^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && d.horaEntrega is string && d.horaEntrega.matches('^$|^([01][0-9]|2[0-3]):[0-5][0-9]$')
+          && d.nombreCliente is string && d.nombreCliente.size() > 0 && d.nombreCliente.size() <= 1000
+          && d.telefonoCliente is string && d.telefonoCliente.size() > 0 && d.telefonoCliente.size() <= 1000
+          && d.comentariosAdicionales is string && d.comentariosAdicionales.size() <= 1000;
+      }
+      // Customers can only create a request; they cannot read, change or remove customer data.
+      allow create: if validRequest();
+      allow read, delete: if isMCMAdmin();
+      allow update: if false;
+    }
+  }
+}

@@ -3,7 +3,10 @@ import {
   collection,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  doc,
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
   ref,
@@ -526,10 +529,53 @@ function setupCakeWhatsApp() {
   if (waDirect) waDirect.href = directUrl;
 
   if (!btn) return;
-  btn.addEventListener("click", () => {
+  let lastRequest = null;
+  btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    const fields = ["tamano", "saborPan", "consistencia", "betun", "detalleFruta", "detallesLogo",
+      "imagenReferencia", "fraseFondant", "fechaEntrega", "horaEntrega", "nombreCliente",
+      "telefonoCliente", "comentariosAdicionales"];
+    const request = Object.fromEntries(fields.map(id => [id, $(id)?.value.trim() || ""]));
+    request.rellenos = [...document.querySelectorAll(".relleno:checked")].map(x => x.value);
+    if (!["tamano", "saborPan", "consistencia", "betun", "nombreCliente", "telefonoCliente"].every(id => request[id])) {
+      alert("Completa tamaño, pan, consistencia, betún, nombre y teléfono antes de enviar.");
+      return;
+    }
+    if (fields.some(id => request[id].length > 1000)) {
+      alert("Cada campo admite hasta 1000 caracteres. Resume los detalles antes de enviar.");
+      return;
+    }
+    const signature = JSON.stringify(request);
+    if (!lastRequest || lastRequest.signature !== signature) {
+      lastRequest = {signature, ref: doc(collection(db, "orderRequests")), saved: false};
+    }
+    const submission = lastRequest;
     const msg = buildCakeWhatsAppMessage();
     const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    $("cakeWhatsAppFallback").href = url;
+    $("cakeWhatsAppHelp").hidden = false;
+    window.open(url, "_blank", "noopener,noreferrer");
+    const status = $("cakeRequestStatus");
+    if (submission.saved) {
+      status.textContent = "Este pedido ya se recibió para cotización. Puedes enviar nuevamente el mensaje de WhatsApp.";
+      return;
+    }
+    btn.disabled = true;
+    status.textContent = "Guardando solicitud de cotización…";
+    const waiting = setTimeout(() => {
+      status.textContent = "Esperando conexión para guardar la solicitud. Mantén esta página abierta; WhatsApp ya se abrió.";
+    }, 10000);
+    try {
+      await setDoc(submission.ref, {...request, version: 1, createdAt: serverTimestamp()});
+      submission.saved = true;
+      status.textContent = "Solicitud recibida para cotización. Completa el envío del mensaje en WhatsApp; MCM revisará y confirmará el precio.";
+    } catch (error) {
+      console.error("No se pudo guardar la solicitud de cotización:", error.code);
+      status.textContent = "WhatsApp se abrió, pero la solicitud de cotización no se guardó. Vuelve a pulsar el botón para reintentar o avisa a MCM por WhatsApp.";
+    } finally {
+      clearTimeout(waiting);
+      btn.disabled = false;
+    }
   });
 }
 
