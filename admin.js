@@ -1,4 +1,5 @@
-import { auth, db, storage } from "./firebase_config.js";
+import { auth, db } from "./firebase_config.js";
+import { uploadAdminImage, removeAdminImage, requireImageAdmin } from "./admin-images.js";
 
 import {
   GoogleAuthProvider,
@@ -15,14 +16,12 @@ import {
   updateDoc,
   doc,
   orderBy,
-  query
+  query,
+  limit,
+  startAfter,
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 /** =========================
  *  CONFIG
@@ -67,7 +66,7 @@ if ($("logoutBtn"))  $("logoutBtn").addEventListener("click",  () => signOut(aut
 
 onAuthStateChanged(auth, (user) => {
   if (!user) { showLogin(); return; }
-  if (!ALLOWED_EMAILS.includes(user.email)) {
+  if (!user.emailVerified || !ALLOWED_EMAILS.includes(user.email)) {
     toast(`${user.email} no está autorizado.`, "error");
     signOut(auth);
     return;
@@ -95,6 +94,7 @@ function showAdmin(user) {
   if ($("logoutBtn")) $("logoutBtn").style.display = "inline-flex";
 
   loadAdminProducts();
+  loadAdminGallery(true);
 }
 
 /** =========================
@@ -113,6 +113,7 @@ function setupImageUpload() {
   const imageUrlInput = $("adminImageUrl");
 
   if (!uploadArea) return;
+  let uploading = false;
 
   window.adminResetImageUI = function () {
     fileInput.value = "";
@@ -147,40 +148,32 @@ function setupImageUpload() {
   uploadArea.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
   fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
-  function handleFile(file) {
-    if (!file.type.startsWith("image/")) { toast("Selecciona un archivo de imagen.", "error"); return; }
-    if (file.size > 5 * 1024 * 1024)    { toast("Máximo 5 MB por imagen.", "error"); return; }
-
+  async function handleFile(file) {
+    if (uploading) return;
+    uploading = true;
+    const previousUrl = imageUrlInput.value;
+    $("saveProduct").disabled = true;
     prompt.style.display = "none";
     previewCont.style.display = "none";
     loading.style.display = "flex";
     progressBar.style.width = "0%";
 
-    const cleanName  = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    const storageRef = ref(storage, `productos/${Date.now()}_${cleanName}`);
-    const task       = uploadBytesResumable(storageRef, file);
-
-    task.on("state_changed",
-      snap => {
-        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
+    loadingText.textContent = "Preparando foto…";
+    try {
+      const url = await uploadAdminImage(file, `productos/${crypto.randomUUID()}.jpg`, pct => {
         progressBar.style.width = `${pct}%`;
-        loadingText.textContent = `Subiendo: ${Math.round(pct)}%`;
-      },
-      err => { toast("Error al subir: " + err.message, "error"); window.adminResetImageUI(); },
-      async () => {
-        try {
-          const url = await getDownloadURL(task.snapshot.ref);
-          imageUrlInput.value = url;
-          previewImg.src = url;
-          loading.style.display = "none";
-          previewCont.style.display = "flex";
-          toast("Imagen cargada ✓");
-        } catch (e) {
-          toast("Error al obtener URL.", "error");
-          window.adminResetImageUI();
-        }
-      }
-    );
+        loadingText.textContent = `Subiendo: ${pct}%`;
+      });
+      window.adminSetImagePreview(url);
+      toast("Imagen cargada ✓");
+    } catch (error) {
+      window.adminResetImageUI();
+      if (previousUrl) window.adminSetImagePreview(previousUrl);
+      toast("No se pudo subir la imagen: " + (error.code || error.message), "error");
+    } finally {
+      uploading = false;
+      $("saveProduct").disabled = false;
+    }
   }
 
   if (removeBtn) removeBtn.addEventListener("click", e => { e.stopPropagation(); window.adminResetImageUI(); });
@@ -395,7 +388,7 @@ async function loadAdminProducts() {
 
 /** Delegate list button clicks */
 document.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-action]");
+  const btn = e.target.closest("#productsList [data-action]");
   if (!btn) return;
 
   const action = btn.getAttribute("data-action");
@@ -438,4 +431,96 @@ document.addEventListener("click", async (e) => {
 document.addEventListener("DOMContentLoaded", () => {
   setupImageUpload();
   setupForm();
+  setupGallery();
 });
+
+let galleryCursor = null;
+let galleryBusy = false;
+let galleryFiles = [];
+
+async function loadAdminGallery(reset = false) {
+  const list = $("adminGalleryGrid");
+  const more = $("adminGalleryMore");
+  if (!list || more.disabled) return;
+  more.disabled = true;
+  if (reset) { galleryCursor = null; list.replaceChildren(); }
+  try {
+    requireImageAdmin();
+    const clauses = [orderBy("createdAt", "desc"), limit(12)];
+    if (galleryCursor) clauses.push(startAfter(galleryCursor));
+    const snap = await getDocs(query(collection(db, "gallery"), ...clauses));
+    for (const item of snap.docs) {
+      const photo = item.data();
+      const card = document.createElement("div");
+      card.className = "gallery-item";
+      const image = document.createElement("img");
+      image.src = photo.imageUrl;
+      image.alt = "Trabajo personalizado MCM";
+      image.loading = "lazy";
+      const button = document.createElement("button");
+      button.className = "btn ghost";
+      button.textContent = "Eliminar foto";
+      button.type = "button";
+      button.addEventListener("click", async () => {
+        if (galleryBusy || !confirm("¿Eliminar esta foto de la galería?")) return;
+        button.disabled = true;
+        try {
+          await removeAdminImage(photo.storagePath);
+          await deleteDoc(doc(db, "gallery", item.id));
+          card.remove();
+          toast("Foto eliminada");
+        } catch (error) { toast("No se pudo eliminar: " + (error.code || error.message), "error"); }
+        finally { button.disabled = false; }
+      });
+      card.append(image, button);
+      list.append(card);
+    }
+    if (snap.docs.length) galleryCursor = snap.docs.at(-1);
+    more.hidden = snap.docs.length < 12;
+    $("adminGalleryStatus").textContent = list.childElementCount ? "" : "Aún no hay trabajos en la galería.";
+  } catch (error) {
+    $("adminGalleryStatus").textContent = "No se pudo cargar la galería: " + (error.code || error.message);
+    more.hidden = false;
+  } finally { more.disabled = false; }
+}
+
+function setupGallery() {
+  const input = $("galleryFiles");
+  const save = $("uploadGallery");
+  if (!input || !save) return;
+  input.addEventListener("change", () => {
+    galleryFiles = Array.from(input.files).map(file => ({file, ref: doc(collection(db, "gallery"))}));
+    $("adminGalleryStatus").textContent = `${galleryFiles.length} fotos seleccionadas.`;
+  });
+  $("adminGalleryMore").addEventListener("click", () => loadAdminGallery());
+  save.addEventListener("click", async () => {
+    if (galleryBusy) return;
+    if (!galleryFiles.length || galleryFiles.length > 20) { toast("Selecciona entre 1 y 20 fotos por subida.", "error"); return; }
+    try { requireImageAdmin(); } catch (error) { toast(error.message, "error"); return; }
+    galleryBusy = true;
+    input.disabled = save.disabled = true;
+    const failed = [];
+    const errors = [];
+    let uploaded = 0;
+    for (const [index, entry] of galleryFiles.entries()) {
+      const path = `galeria/${entry.ref.id}.jpg`;
+      try {
+        const imageUrl = await uploadAdminImage(entry.file, path, pct => {
+          $("adminGalleryStatus").textContent = `Foto ${index + 1} de ${galleryFiles.length}: ${pct}%`;
+        });
+        await setDoc(entry.ref, {imageUrl, storagePath: path, createdAt: serverTimestamp()});
+        uploaded++;
+      } catch (error) {
+        // Keep the same ID on retry; an uncertain save cannot create a second gallery entry.
+        failed.push(entry);
+        errors.push(`${entry.file.name}: ${error.code || error.message}`);
+      }
+    }
+    galleryFiles = failed;
+    galleryBusy = false;
+    input.disabled = save.disabled = false;
+    if (!failed.length) input.value = "";
+    await loadAdminGallery(true);
+    $("adminGalleryStatus").textContent = `${uploaded} fotos publicadas.` + (failed.length ? ` ${failed.length} pendientes; pulsa Subir fotos para reintentar sólo esas fotos. ${errors.join(" · ")}` : "");
+  });
+}

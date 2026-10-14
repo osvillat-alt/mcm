@@ -6,7 +6,9 @@ import {
   orderBy,
   doc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  limit,
+  startAfter
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
   ref,
@@ -794,4 +796,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   observeReveal();
   loadProducts();
+  setupGallery();
 });
+
+function setupGallery() {
+  const grid = $("galleryGrid");
+  const more = $("galleryMore");
+  const status = $("galleryStatus");
+  if (!grid || !more || !status) return;
+  let cursor = null;
+  let loading = false;
+  async function loadPage() {
+    if (loading) return;
+    loading = more.disabled = true;
+    status.textContent = "Cargando trabajos…";
+    try {
+      const clauses = [orderBy("createdAt", "desc"), limit(12)];
+      if (cursor) clauses.push(startAfter(cursor));
+      const snap = await getDocs(query(collection(db, "gallery"), ...clauses));
+      for (const item of snap.docs) {
+        const link = document.createElement("a");
+        link.className = "gallery-item";
+        link.href = item.data().imageUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.setAttribute("aria-label", "Ampliar foto de trabajo personalizado MCM");
+        const image = document.createElement("img");
+        image.src = item.data().imageUrl;
+        image.alt = "Trabajo personalizado MCM";
+        image.loading = "lazy";
+        image.decoding = "async";
+        link.append(image);
+        grid.append(link);
+      }
+      if (snap.docs.length) cursor = snap.docs.at(-1);
+      more.hidden = snap.docs.length < 12;
+      status.textContent = grid.childElementCount ? "" : "Próximamente compartiremos nuestros trabajos aquí.";
+    } catch {
+      status.textContent = "No se pudieron cargar los trabajos. Intenta de nuevo.";
+      more.hidden = false;
+    } finally { loading = more.disabled = false; }
+  }
+  more.addEventListener("click", loadPage);
+  if (!("IntersectionObserver" in window)) { loadPage(); return; }
+  const observer = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) { observer.disconnect(); loadPage(); }
+  }, {rootMargin: "200px"});
+  observer.observe(grid);
+}

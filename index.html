@@ -28,7 +28,7 @@
     content="Pasteles únicos y deliciosos. Personaliza tu diseño, sabor y relleno. ¡Haz tu pedido ahora!">
   <meta property="og:image" content="./assets/logo.png">
 
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=gallery1" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
@@ -44,6 +44,7 @@
       <nav class="nav" aria-label="Navegación">
         <a href="#home">Inicio</a>
         <a href="#productos">Productos</a>
+        <a href="#galeria">Galería</a>
         <a href="#personaliza">Personaliza</a>
         <a href="#acerca">Acerca</a>
         <a href="#contacto">Contacto</a>
@@ -93,6 +94,18 @@
         </div>
 
         <div id="productsGrid" class="grid" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section" id="galeria" aria-labelledby="galleryTitle">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="galleryTitle">Trabajos personalizados</h2>
+        </div>
+        <p class="muted">Un vistazo a los pasteles que hemos creado para momentos especiales.</p>
+        <div id="galleryGrid" class="gallery-grid"></div>
+        <p id="galleryStatus" class="muted" role="status" aria-live="polite"></p>
+        <button id="galleryMore" class="btn ghost" type="button" hidden>Ver más trabajos</button>
       </div>
     </section>
 
@@ -331,7 +344,7 @@
     </div>
   </aside>
 
-  <script type="module" src="./app.js?v=3"></script>
+  <script type="module" src="./app.js?v=4"></script>
 </body>
 
 </html>
