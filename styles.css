@@ -312,6 +312,32 @@ label {
 /* =========================
    PRODUCTS (CATÁLOGO)
 ========================= */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.gallery-item {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.gallery-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.gallery-item .btn { margin: 8px; }
+.gallery-admin { padding: 20px; margin-top: 16px; }
+[hidden] { display: none !important; }
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

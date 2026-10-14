@@ -44,6 +44,7 @@
       <nav class="nav" aria-label="Navegación">
         <a href="#home">Inicio</a>
         <a href="#productos">Productos</a>
+        <a href="#galeria">Galería</a>
         <a href="#personaliza">Personaliza</a>
         <a href="#acerca">Acerca</a>
         <a href="#contacto">Contacto</a>
@@ -93,6 +94,18 @@
         </div>
 
         <div id="productsGrid" class="grid" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section" id="galeria" aria-labelledby="galleryTitle">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="galleryTitle">Trabajos personalizados</h2>
+        </div>
+        <p class="muted">Un vistazo a los pasteles que hemos creado para momentos especiales.</p>
+        <div id="galleryGrid" class="gallery-grid"></div>
+        <p id="galleryStatus" class="muted" role="status" aria-live="polite"></p>
+        <button id="galleryMore" class="btn ghost" type="button" hidden>Ver más trabajos</button>
       </div>
     </section>
 

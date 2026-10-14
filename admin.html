@@ -32,6 +32,9 @@
       font-size: 22px;
     }
 
+    .topbar-actions { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+    .brand { flex-shrink: 0; }
+
     .tag {
       display: inline-flex;
       padding: 6px 10px;
@@ -65,7 +68,9 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease, transform .25s ease;
-      white-space: nowrap;
+      white-space: normal;
+      width: max-content;
+      max-width: calc(100vw - 32px);
     }
 
     #toast.show {
@@ -277,7 +282,7 @@
   <main class="admin-wrap">
 
     <div class="admin-top">
-      <h2>Catálogo</h2>
+      <h2>Catálogo y galería</h2>
     </div>
 
     <!-- LOGIN -->
@@ -336,7 +341,7 @@
           <div class="upload-container">
             <label>Imagen del producto</label>
             <div class="upload-area" id="adminUploadArea">
-              <input type="file" id="adminFileInput" accept="image/*" style="display:none;" />
+              <input type="file" id="adminFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" />
 
               <div class="upload-prompt" id="adminUploadPrompt">
                 <div class="upload-icon">
@@ -347,7 +352,7 @@
                   </svg>
                 </div>
                 <span class="upload-text">Presiona para seleccionar foto o arrastra aquí</span>
-                <span class="upload-subtext">JPG, PNG — Máx. 5 MB</span>
+                <span class="upload-subtext">JPG, PNG, WebP — Máx. 12 MB. Se optimiza al subir.</span>
               </div>
 
               <div class="upload-loading" id="adminUploadLoading" style="display:none;">
@@ -391,6 +396,18 @@
         <div id="productsList"></div>
       </div>
 
+      <div class="card gallery-admin">
+        <h3>Galería de trabajos personalizados</h3>
+        <p class="muted">Publica fotos de trabajos anteriores, sin precio ni descripción.</p>
+        <label for="galleryFiles">Seleccionar fotos (hasta 20 por subida)</label>
+        <input id="galleryFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+        <p class="muted">JPG, PNG o WebP. Las fotos se optimizan antes de subirlas.</p>
+        <button id="uploadGallery" class="btn primary" type="button">Subir fotos</button>
+        <p id="adminGalleryStatus" class="muted" role="status" aria-live="polite"></p>
+        <div id="adminGalleryGrid" class="gallery-grid"></div>
+        <button id="adminGalleryMore" class="btn ghost" type="button" hidden>Ver más fotos</button>
+      </div>
+
     </section>
   </main>
 
@@ -400,7 +417,7 @@
   <!-- Toast notification -->
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="./admin.js?v=4"></script>
+  <script type="module" src="./admin.js?v=5"></script>
 </body>
 
 </html>
