@@ -1,4 +1,5 @@
 import { db, storage } from "./firebase_config.js";
+import { setupCakePreview } from "./cake-preview.js";
 import {
   collection,
   getDocs,
@@ -788,6 +789,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupCartUI();
   setupCakeWhatsApp();
+  setupCakePreview();
   setupCakeImageUpload();
   setupProductActions();
 

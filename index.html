@@ -28,7 +28,7 @@
     content="Pasteles únicos y deliciosos. Personaliza tu diseño, sabor y relleno. ¡Haz tu pedido ahora!">
   <meta property="og:image" content="./assets/logo.png">
 
-  <link rel="stylesheet" href="./styles.css?v=gallery1" />
+  <link rel="stylesheet" href="./styles.css?v=cake1" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
@@ -112,9 +112,63 @@
     <!-- PERSONALIZA -->
     <section class="section" id="personaliza">
       <div class="container">
-        <h2>Personaliza tu pastel</h2>
-        <p class="muted">Llena este formulario y envíalo por WhatsApp.</p>
+        <h2>Crea tu pastel</h2>
+        <p class="muted">Elige tus ingredientes y mira cómo toma forma. Al terminar, envía tu pedido por WhatsApp.</p>
 
+        <div class="cake-builder">
+          <aside id="cakePreview" class="card cake-preview" aria-labelledby="cakePreviewTitle" hidden>
+            <div class="cake-art">
+              <svg class="cake-svg" viewBox="30 64 300 200" role="img" aria-labelledby="cakeSvgTitle cakeSvgDescription">
+                <title id="cakeSvgTitle">Tu pastel MCM</title>
+                <desc id="cakeSvgDescription">Vista ilustrativa del pastel que estás personalizando.</desc>
+                <defs>
+                  <linearGradient id="cakePanGradient" x1="0" x2="1"><stop stop-color="var(--cake-pan)"/><stop offset="1" stop-color="var(--cake-pan-dark)"/></linearGradient>
+                  <linearGradient id="cakeIcingGradient" x1="0" x2="1"><stop stop-color="var(--cake-icing)"/><stop offset="1" stop-color="var(--cake-icing-shadow)"/></linearGradient>
+                  <linearGradient id="cakeFillingGradient" x1="0" y1="0" x2="0" y2="1" />
+                  <clipPath id="cakeSliceClip"><path d="M202 150 L269 136 L269 207 Q242 223 202 220Z"/></clipPath>
+                  <pattern id="cakeCrumbs" width="24" height="18" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1.5" fill="#fff" opacity=".18"/><circle cx="17" cy="13" r="2" fill="#4b2f24" opacity=".12"/></pattern>
+                </defs>
+                <ellipse cx="180" cy="245" rx="139" ry="18" fill="#4b2f24" opacity=".08"/>
+                <ellipse cx="180" cy="236" rx="142" ry="24" fill="#ecd9d4"/>
+                <ellipse cx="180" cy="230" rx="142" ry="24" fill="#fffaf7" stroke="#e7d6cf" stroke-width="2"/>
+                <g id="cakeEmpty" class="cake-part">
+                  <path d="M70 119 V201 C70 240 290 240 290 201 V119" fill="none" stroke="#c6a89c" stroke-width="2" stroke-dasharray="6 6"/>
+                  <ellipse cx="180" cy="119" rx="110" ry="37" fill="#f9ece5" stroke="#c6a89c" stroke-width="2" stroke-dasharray="6 6"/>
+                  <text x="180" y="172" text-anchor="middle" fill="#927163" font-size="14">Tu pastel empieza aquí</text>
+                </g>
+                <g id="cakeModel" class="cake-model">
+                  <path d="M70 119 V201 C70 240 290 240 290 201 V119Z" fill="url(#cakePanGradient)"/>
+                  <path d="M70 119 V201 C70 240 290 240 290 201 V119Z" fill="url(#cakeCrumbs)"/>
+                  <ellipse cx="180" cy="119" rx="110" ry="37" fill="var(--cake-pan)"/>
+                  <g id="cakeIcing" class="cake-part">
+                    <path d="M70 119 V201 C70 240 290 240 290 201 V119Z" fill="url(#cakeIcingGradient)" stroke="var(--cake-icing-shadow)" stroke-width="1.5"/>
+                    <path d="M75 175 C104 192 183 201 222 190 M76 198 Q119 216 174 214" fill="none" stroke="#4b2f24" stroke-width="2" opacity=".07"/>
+                    <ellipse cx="180" cy="116" rx="110" ry="37" fill="var(--cake-icing)" stroke="#4b2f24" stroke-opacity=".1"/>
+                    <path d="M70 117 C70 151 89 140 92 158 C98 176 105 154 111 153 C135 162 168 164 178 168 C191 190 198 158 217 156 C235 169 239 151 249 146 C265 158 275 140 290 117" fill="var(--cake-icing)"/>
+                    <ellipse cx="180" cy="114" rx="97" ry="29" fill="none" stroke="var(--cake-icing-shadow)" stroke-width="10" stroke-dasharray="1 10" stroke-linecap="round" opacity=".6"/>
+                    <ellipse cx="180" cy="111" rx="97" ry="29" fill="none" stroke="var(--cake-icing)" stroke-width="8" stroke-dasharray="1 10" stroke-linecap="round"/>
+                  </g>
+                  <g id="cakeCutaway" class="cake-part" clip-path="url(#cakeSliceClip)">
+                    <path d="M202 133 H280 V230 H202Z" fill="url(#cakePanGradient)"/>
+                    <path d="M202 133 H280 V230 H202Z" fill="url(#cakeCrumbs)"/>
+                    <path id="cakeFillingBand" class="cake-part" d="M202 170 L274 154 V183 L202 199Z" fill="url(#cakeFillingGradient)"/>
+                  </g>
+                  <g id="cakeMoisture" class="cake-part" fill="#fff4dc">
+                    <path d="M121 183 Q110 199 121 203 Q132 199 121 183Z"/><path d="M155 195 Q147 207 155 210 Q163 207 155 195Z"/>
+                  </g>
+                  <text id="cakeMessage" x="180" y="120" text-anchor="middle" font-family="inherit" font-weight="700" />
+                </g>
+              </svg>
+            </div>
+            <div class="cake-preview-info">
+              <p class="cake-eyebrow" id="cakeSizeLabel">Elige un tamaño</p>
+              <h3 id="cakePreviewTitle">Tu pastel, a tu gusto</h3>
+              <p id="cakePreviewSummary" class="cake-summary" role="status" aria-live="polite" aria-atomic="true">Elige el pan para empezar.</p>
+              <p id="cakeFillingsLabel" class="cake-fillings">Agrega los rellenos que prefieras.</p>
+              <p id="cakeDesignNote" class="cake-design-note"></p>
+              <p class="cake-disclaimer">Vista ilustrativa. El diseño final se acuerda con MCM.</p>
+            </div>
+          </aside>
         <div class="card form-wrap">
           <div class="form-grid">
             <label>Tamaño
@@ -260,6 +314,7 @@
           <p id="cakeRequestStatus" class="muted" role="status" aria-live="polite"></p>
           <p id="cakeWhatsAppHelp" class="muted" hidden>Si WhatsApp no se abrió, <a id="cakeWhatsAppFallback" target="_blank" rel="noopener noreferrer">continúa aquí</a>.</p>
         </div>
+        </div>
       </div>
     </section>
 
@@ -344,7 +399,7 @@
     </div>
   </aside>
 
-  <script type="module" src="./app.js?v=4"></script>
+  <script type="module" src="./app.js?v=5"></script>
 </body>
 
 </html>
