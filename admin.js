@@ -388,7 +388,7 @@ async function loadAdminProducts() {
 
 /** Delegate list button clicks */
 document.addEventListener("click", async (e) => {
-    const btn = e.target.closest("#productsList [data-action]");
+  const btn = e.target.closest("#productsList [data-action]");
   if (!btn) return;
 
   const action = btn.getAttribute("data-action");

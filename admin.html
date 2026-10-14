@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — MCM Repostería</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=gallery1" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
@@ -283,6 +283,7 @@
 
     <div class="admin-top">
       <h2>Catálogo y galería</h2>
+      <a class="btn ghost" href="#adminGallery">Galería</a>
     </div>
 
     <!-- LOGIN -->
@@ -396,7 +397,7 @@
         <div id="productsList"></div>
       </div>
 
-      <div class="card gallery-admin">
+      <div id="adminGallery" class="card gallery-admin">
         <h3>Galería de trabajos personalizados</h3>
         <p class="muted">Publica fotos de trabajos anteriores, sin precio ni descripción.</p>
         <label for="galleryFiles">Seleccionar fotos (hasta 20 por subida)</label>

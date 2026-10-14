@@ -335,7 +335,7 @@ label {
 }
 
 .gallery-item .btn { margin: 8px; }
-.gallery-admin { padding: 20px; margin-top: 16px; }
+.gallery-admin { padding: 20px; margin-top: 16px; scroll-margin-top: 130px; }
 [hidden] { display: none !important; }
 
 .grid {
