@@ -139,3 +139,66 @@ assert.equal(adminEl('uploadGallery').disabled,false);
 await adminEl('uploadGallery').click();
 assert.equal(photoWrites.length,3); // Already completed selection cannot be uploaded again.
 console.log('Both image admins, compression and format/size limits, access denials, image-only gallery saves and retry without duplicates verified locally.');
+
+// The visual builder reads the existing order fields and never writes or sends them.
+const previewElements = new Map();
+const previewEl = id => {
+  if (!previewElements.has(id)) previewElements.set(id, {value:'',textContent:'',children:[],attributes:{},
+    style:{setProperty(name,value){this[name]=value;}},classList:{toggle(name,enabled){this[name]=enabled;}},
+    replaceChildren(){this.children=[];},append(child){this.children.push(child);},
+    setAttribute(name,value){this.attributes[name]=value;}});
+  return previewElements.get(id);
+};
+let selectedFillings = [];
+const previewForm = {querySelectorAll:()=>selectedFillings.map(value=>({value})),addEventListener(type,fn){this[type]=fn;}};
+const previewSandbox = {document:{getElementById:previewEl,querySelector:selector=>selector==='.topbar'?{getBoundingClientRect:()=>({height:72})}:previewForm,
+  createElementNS:()=>({attributes:{},setAttribute(name,value){this.attributes[name]=value;}})},
+  window:{innerHeight:844,visualViewport:{height:844,addEventListener(type,fn){this[type]=fn;}}}};
+vm.createContext(previewSandbox);
+const previewCode=fs.readFileSync(new URL('cake-preview.js',import.meta.url),'utf8');
+assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|setDoc|uploadBytes)\s*\(/.test(previewCode));
+vm.runInContext(previewCode.replace(/^export /gm,'')+'\nsetupCakePreview();',previewSandbox);
+const previewChange = id=>previewForm.change({target:{id,classList:{contains:()=>id==='relleno'}}});
+assert.equal(previewEl('cakePreview').hidden,false);
+assert.equal(previewEl('cakeModel').style.opacity,'0');
+const panColors=new Set();
+for(const pan of ['Vainilla','Chocolate','Red velvet','Almendra','Zanahoria']) {
+  previewEl('saborPan').value=pan; previewChange('saborPan');
+  assert.equal(previewEl('saborPan').value,pan);
+  assert.equal(previewEl('cakeModel').style.opacity,'1');
+  panColors.add(previewEl('cakePreview').style['--cake-pan']);
+}
+assert.equal(panColors.size,5);
+const cakeSizes=new Set();
+for(const size of ['16 cm','18 cm','20 cm','22 cm']) {
+  previewEl('tamano').value=size; previewChange('tamano');
+  cakeSizes.add(previewEl('cakeModel').style.transform);
+  assert.equal(previewEl('cakeSizeLabel').textContent,size);
+}
+assert.equal(cakeSizes.size,4);
+selectedFillings=['Fruta','Nuez','Nutella','__proto__'];
+previewEl('detalleFruta').value='mango'; previewChange('relleno');
+assert.equal(previewEl('cakeFillingGradient').children.length,6);
+assert.equal(previewEl('cakeFillingTexture').style.opacity,'0.65');
+assert.ok(previewEl('cakeFillingsLabel').textContent.includes('mango'));
+assert.ok(!previewEl('cakeFillingsLabel').textContent.includes('__proto__'));
+selectedFillings=['Chantilly'];previewChange('relleno');
+assert.equal(previewEl('cakeFillingTexture').style.opacity,'0');
+assert.equal(previewEl('cakeFillingBand').style.opacity,'1');
+selectedFillings=[];previewChange('relleno');
+assert.equal(previewEl('cakeFillingBand').style.opacity,'0');
+previewEl('betun').value='Chocolate'; previewChange('betun');
+assert.equal(previewEl('cakeIcing').style.opacity,'1');
+previewEl('fraseFondant').value='<img src=x onerror=alert(1)>'; previewForm.input({target:{id:'fraseFondant',classList:{contains:()=>false}}});
+assert.ok(previewEl('cakeMessage').textContent.startsWith('<img'));
+assert.equal(previewEl('fraseFondant').value,'<img src=x onerror=alert(1)>');
+previewEl('fraseFondant').value='🎂'.repeat(40); previewChange('fraseFondant');
+assert.equal(Array.from(previewEl('cakeMessage').textContent).length,28);
+assert.ok(previewEl('cakeMessage').textContent.endsWith('…'));
+previewEl('consistencia').value='Tres leches';previewChange('consistencia');
+assert.equal(previewEl('cakeMoisture').style.opacity,'0.6');
+previewEl('saborPan').value='__proto__';previewChange('saborPan');
+assert.equal(previewEl('cakeModel').style.opacity,'0');
+previewSandbox.window.visualViewport.height=360;previewSandbox.window.visualViewport.resize();
+assert.equal(previewEl('cakePreview').classList['cake-short-view'],true);
+console.log('Live cake appearance, all pan/size options, multiple fillings, safe lettering, unchanged order fields and small-screen handling verified without network calls.');
