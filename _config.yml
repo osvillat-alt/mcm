@@ -1,0 +1,15 @@
+exclude:
+  - firestore.rules
+  - firestore.indexes.json
+  - storage.rules
+  - firebase.json
+  - vercel.json
+  - SECURITY.md
+  - check.mjs
+  - check-security.mjs
+  - check-rules.cjs
+  - node_modules
+  - outputs
+  - .env
+  - .env.local
+  - .env.production

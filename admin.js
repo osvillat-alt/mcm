@@ -1,12 +1,12 @@
-import { auth, db } from "./firebase_config.js";
-import { uploadAdminImage, removeAdminImage, requireImageAdmin } from "./admin-images.js";
+import { auth, db } from "./firebase_config.js?v=security1";
+import { uploadAdminImage, removeAdminImage, requireImageAdmin } from "./admin-images.js?v=security1";
 
 import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 import {
   collection,
@@ -21,7 +21,7 @@ import {
   startAfter,
   setDoc,
   serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 /** =========================
  *  CONFIG
@@ -228,6 +228,11 @@ function setupForm() {
     const imageUrl = $("adminImageUrl")?.value || "";
     const price    = $("pPrice")?.value || "";
     const desc     = $("pDesc")?.value?.trim() || "";
+    if (name.length > 200 || category.length > 100 || desc.length > 4000
+      || !/^$|^[0-9]{1,7}([.][0-9]{1,2})?$/.test(price)) {
+      toast("Revisa los datos: nombre hasta 200 caracteres, categoría 100, descripción 4000 y precio positivo con hasta 2 decimales.", "error");
+      return;
+    }
 
     saveBtn.disabled = true;
     saveBtn.textContent = "Guardando…";
@@ -252,7 +257,7 @@ function setupForm() {
           description: desc,
           imagePath: imageUrl,
           active: true,
-          createdAt: Date.now()
+          createdAt: serverTimestamp()
         });
         toast("Producto guardado ✓");
       }
@@ -344,11 +349,11 @@ async function loadAdminProducts() {
   try {
     const q    = query(collection(db, "products"), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
-    allAdminProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allAdminProducts = snap.docs.map(d => ({ ...d.data(), id: d.id }));
   } catch {
     // fallback without orderBy in case index not ready
     const snap = await getDocs(collection(db, "products"));
-    allAdminProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allAdminProducts = snap.docs.map(d => ({ ...d.data(), id: d.id }));
   }
 
   if (!allAdminProducts.length) {
@@ -365,20 +370,19 @@ async function loadAdminProducts() {
     const price       = p.price ? `$${p.price}` : "";
 
     return `
-      <div class="prod-item" data-id="${p.id}">
+      <div class="prod-item" data-id="${escapeHtml(p.id)}">
         <img class="prod-thumb"
              src="${escapeHtml(img)}"
              alt="${escapeHtml(p.name)}"
-             loading="lazy"
-             onerror="this.style.background='#f0f0f0'; this.removeAttribute('src');" />
+             loading="lazy" />
         <div class="prod-info">
           <h4>${escapeHtml(p.name)}${draftBadge}</h4>
           <div class="prod-cat">${escapeHtml(p.category || "")}</div>
           <div class="prod-price">${escapeHtml(price)}</div>
           <div class="prod-actions">
-            <button class="btn-edit"       data-action="edit"   data-id="${p.id}">✏️ Editar</button>
-            <button class="btn-toggle-vis ${visClass}" data-action="toggle" data-id="${p.id}" data-active="${p.active}">${visLabel}</button>
-            <button class="btn-delete"     data-action="delete" data-id="${p.id}">🗑</button>
+            <button class="btn-edit"       data-action="edit"   data-id="${escapeHtml(p.id)}">✏️ Editar</button>
+            <button class="btn-toggle-vis ${visClass}" data-action="toggle" data-id="${escapeHtml(p.id)}" data-active="${p.active !== false}">${visLabel}</button>
+            <button class="btn-delete"     data-action="delete" data-id="${escapeHtml(p.id)}">🗑</button>
           </div>
         </div>
       </div>

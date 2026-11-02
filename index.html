@@ -15,7 +15,8 @@
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
     font-src 'self' https://fonts.gstatic.com; 
     img-src 'self' data: blob: https://firebasestorage.googleapis.com; 
-    connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com;
+    connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://mcm-reposteria.firebaseapp.com;
+    frame-src https://mcm-reposteria.firebaseapp.com https://accounts.google.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -251,7 +252,7 @@
             <div class="full upload-container">
               <label>Imagen de referencia (galería o archivo)</label>
               <div class="upload-area" id="uploadArea">
-                <input type="file" id="fileInput" accept="image/*" style="display: none;" />
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
                 
                 <div class="upload-prompt" id="uploadPrompt">
                   <div class="upload-icon">
@@ -262,7 +263,7 @@
                     </svg>
                   </div>
                   <span class="upload-text">Presiona para abrir la galería o arrastra una imagen aquí</span>
-                  <span class="upload-subtext">Formatos sugeridos: JPG, PNG. Máx 5MB</span>
+                  <span class="upload-subtext">JPG, PNG o WebP. Máx. 5 MB. La imagen se comparte por enlace.</span>
                 </div>
                 
                 <div class="upload-loading" id="uploadLoading" style="display: none;">
@@ -414,7 +415,7 @@
     </div>
   </aside>
 
-  <script type="module" src="./app.js?v=5"></script>
+  <script type="module" src="./app.js?v=security1"></script>
 </body>
 
 </html>
