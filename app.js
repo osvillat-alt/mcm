@@ -1,21 +1,22 @@
-import { db, storage } from "./firebase_config.js";
+import { db, storage } from "./firebase_config.js?v=security1";
 import { setupCakePreview } from "./cake-preview.js";
 import {
   collection,
   getDocs,
   query,
   orderBy,
+  where,
   doc,
   setDoc,
   serverTimestamp,
   limit,
   startAfter
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {
   ref,
   uploadBytesResumable,
   getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
 /** =========================
  *  Config
@@ -65,7 +66,15 @@ const cartCountEl = $("cartCount");
 const sendCartBtn = $("sendCartWhatsApp");
 const clearCartBtn = $("clearCart");
 
-let cart = JSON.parse(localStorage.getItem("mcm_cart") || "[]");
+let cart = [];
+try {
+  const saved = JSON.parse(localStorage.getItem("mcm_cart") || "[]");
+  if (Array.isArray(saved)) cart = saved.filter(item => item && typeof item.id === "string"
+    && typeof item.name === "string" && typeof item.imagePath === "string"
+    && Number.isSafeInteger(item.qty) && item.qty > 0
+    && (typeof item.price === "string" || typeof item.price === "number")
+    && (item.price === "" || Number.isFinite(Number(item.price)) && Number(item.price) >= 0));
+} catch { /* A damaged local cart must not prevent access to the catalog. */ }
 
 function saveCart() {
   localStorage.setItem("mcm_cart", JSON.stringify(cart));
@@ -240,7 +249,7 @@ function renderCart() {
         <div class="cart-item">
           <div class="cart-thumb">
             ${img
-          ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+          ? `<img src="${escapeHtml(img)}" alt="${safeName}" loading="lazy">`
           : ""
         }
           </div>
@@ -252,14 +261,14 @@ function renderCart() {
               <span>${it.price !== "" ? money(it.price) : ""}</span>
 
               <div class="cart-qty">
-                <button class="qty-btn" data-act="dec" data-id="${it.id}" type="button">−</button>
+                <button class="qty-btn" data-act="dec" data-id="${escapeHtml(it.id)}" type="button">−</button>
                 <span class="qty-num">${it.qty || 1}</span>
-                <button class="qty-btn" data-act="inc" data-id="${it.id}" type="button">+</button>
+                <button class="qty-btn" data-act="inc" data-id="${escapeHtml(it.id)}" type="button">+</button>
               </div>
             </div>
 
             <div style="margin-top:8px; display:flex; justify-content:flex-end;">
-              <button class="remove-btn" data-act="rm" data-id="${it.id}" type="button">Quitar</button>
+              <button class="remove-btn" data-act="rm" data-id="${escapeHtml(it.id)}" type="button">Quitar</button>
             </div>
           </div>
         </div>
@@ -309,7 +318,7 @@ function setupCartUI() {
     sendCartBtn.addEventListener("click", () => {
       const msg = buildCartWhatsApp();
       const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msg)}`;
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     });
   }
 
@@ -365,7 +374,7 @@ function renderProducts(list) {
         <article class="card product reveal" style="animation-delay:${delay}ms">
           <div class="media">
             ${img
-          ? `<img src="${img}" alt="${safeName}" loading="lazy" onerror="this.style.display='none'">`
+          ? `<img src="${escapeHtml(img)}" alt="${safeName}" loading="lazy">`
           : ""
         }
           </div>
@@ -376,8 +385,8 @@ function renderProducts(list) {
             ${p.description ? `<p>${escapeHtml(p.description)}</p>` : `<p class="muted">Disponible bajo pedido.</p>`}
 
             <div class="product-actions">
-              <button class="btn primary" data-action="order" data-id="${p.id}" type="button">Pedir</button>
-              <button class="btn ghost" data-action="add" data-id="${p.id}" type="button">Agregar</button>
+              <button class="btn primary" data-action="order" data-id="${escapeHtml(p.id)}" type="button">Pedir</button>
+              <button class="btn ghost" data-action="add" data-id="${escapeHtml(p.id)}" type="button">Agregar</button>
             </div>
           </div>
         </article>
@@ -430,17 +439,17 @@ async function loadProducts() {
   renderSkeleton();
 
   try {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "products"), where("active", "==", true), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
     // Filter out products that are explicitly marked as inactive (drafts)
     allProducts = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
+      .map((d) => ({ ...d.data(), id: d.id }))
       .filter(p => p.active !== false); // Default to true if properties missing
   } catch (e) {
     console.warn("Firestore error, falling back to basic fetch", e);
-    const snap = await getDocs(collection(db, "products"));
+    const snap = await getDocs(query(collection(db, "products"), where("active", "==", true)));
     allProducts = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
+      .map((d) => ({ ...d.data(), id: d.id }))
       .filter(p => p.active !== false);
   }
 
@@ -652,13 +661,14 @@ function setupCakeImageUpload() {
   });
 
   function handleFile(file) {
-    if (!file.type.startsWith("image/")) {
-      alert("Por favor, selecciona únicamente archivos de imagen (JPG, PNG, etc.).");
+    const extensions = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"};
+    if (!Object.hasOwn(extensions, file.type)) {
+      alert("Selecciona una imagen JPG, PNG o WebP.");
       return;
     }
 
     const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (!file.size || file.size > maxSize) {
       alert("La imagen es demasiado grande. El tamaño máximo permitido es de 5MB.");
       return;
     }
@@ -673,8 +683,7 @@ function setupCakeImageUpload() {
     imagenReferencia.value = "[IMAGEN_LOCAL]";
 
     // Subida en background con timeout de 20 s
-    const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    const storagePath = `referencias/${Date.now()}_${cleanName}`;
+    const storagePath = `referencias/${crypto.randomUUID()}.${extensions[file.type]}`;
     const storageRef = ref(storage, storagePath);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -699,10 +708,9 @@ function setupCakeImageUpload() {
           if (uploadLoadingText) uploadLoadingText.textContent = "⚠️ Timeout — imagen local guardada";
           return;
         }
-        console.error("Error al subir a Firebase Storage:", error.code, error.message);
-        // Mostrar el error real en la UI para diagnóstico
+        console.error("Error al subir a Firebase Storage:", error.code);
         if (uploadLoadingText) {
-          uploadLoadingText.textContent = `❌ Error: ${error.code}`;
+          uploadLoadingText.textContent = "No se pudo subir. Adjunta la imagen directamente en WhatsApp.";
           uploadLoading.style.display = "flex";
         }
       },
@@ -771,7 +779,7 @@ function setupProductActions() {
     if (action === "order") {
       const msg = buildProductWhatsApp(product);
       const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msg)}`;
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
 
     if (action === "add") {
@@ -817,14 +825,16 @@ function setupGallery() {
       if (cursor) clauses.push(startAfter(cursor));
       const snap = await getDocs(query(collection(db, "gallery"), ...clauses));
       for (const item of snap.docs) {
+        const imageUrl = item.data().imageUrl;
+        if (typeof imageUrl !== "string" || !/^https:\/\/firebasestorage\.googleapis\.com\//.test(imageUrl)) continue;
         const link = document.createElement("a");
         link.className = "gallery-item";
-        link.href = item.data().imageUrl;
+        link.href = imageUrl;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.setAttribute("aria-label", "Ampliar foto de trabajo personalizado MCM");
         const image = document.createElement("img");
-        image.src = item.data().imageUrl;
+        image.src = imageUrl;
         image.alt = "Trabajo personalizado MCM";
         image.loading = "lazy";
         image.decoding = "async";

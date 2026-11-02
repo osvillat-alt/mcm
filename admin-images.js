@@ -1,5 +1,5 @@
-import { auth, storage } from "./firebase_config.js";
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { auth, storage } from "./firebase_config.js?v=security1";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
 export function requireImageAdmin() {
   if (!auth.currentUser?.emailVerified || !["osvillat@gmail.com", "calderamoralesmarisol@gmail.com"].includes(auth.currentUser.email)) {

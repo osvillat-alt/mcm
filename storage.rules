@@ -22,11 +22,14 @@ service firebase.storage {
       allow create, update: if isMCMAdmin() && optimizedPhoto() && file.matches('^[A-Za-z0-9_-]+[.]jpg$');
       allow delete: if isMCMAdmin();
     }
-    // Existing customer reference uploads keep their current permissions.
-    match /referencias/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+    // References are shared by link, not a public directory. App Check/rate limits are still needed.
+    match /referencias/{file} {
+      allow get: if true;
+      allow list: if isMCMAdmin();
+      allow create: if resource == null && file.matches('^[a-f0-9-]{36}[.](jpg|png|webp)$')
+        && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+      allow delete: if isMCMAdmin();
     }
   }
 }

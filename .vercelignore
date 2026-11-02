@@ -1,0 +1,13 @@
+.env*
+node_modules/
+.firebase/
+outputs/
+check*.mjs
+check*.cjs
+firestore.rules
+firestore.indexes.json
+storage.rules
+firebase.json
+SECURITY.md
+_config.yml
+*-debug.log
